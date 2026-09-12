@@ -1,7 +1,7 @@
 # /docs — How This Folder Works
 
 This folder tracks project state across sessions, separately from code.
-Four files, each with one job — don't duplicate content across them.
+Five files, each with one job — don't duplicate content across them.
 
 - **`context.md`** — the stable project picture: PI (Geetanjali Bhola), the
   broader multimodal zero-shot crowd-analysis direction, why riot/protest
@@ -33,6 +33,12 @@ Four files, each with one job — don't duplicate content across them.
   outrun what `findings.md` backs up without the speculative tag, and if a
   supporting finding later gets superseded, the affected section must be
   flagged, not silently left as-is.
+
+- **`roadmap.md`** — candidate ideas for future work: other models to test
+  beyond CLIP, model-combination/ensemble ideas, and open brainstorm items
+  nobody has tried yet. Nothing here is a result. When an item actually
+  gets run, move it to `findings.md` (tagged appropriately) rather than
+  leaving stale duplicate status in both places.
 
 ## The one rule that matters most
 

@@ -73,3 +73,22 @@ CLIP_MODEL_NAME = "ViT-B-32"
 CLIP_PRETRAINED = "openai"
 NUM_FRAMES_PER_CLIP = 8
 FRAME_SIZE = 224  # CLIP ViT-B-32 default input resolution
+
+# --- Sparse Lucas-Kanade optical flow preprocessing ---
+# Deliberately sparse (Lucas-Kanade, tracked corner features), not dense
+# (Farneback, per-pixel) -- different from the original stampede paper's
+# Farneback-based feature vector. See docs/roadmap.md for why this is being
+# tried as an alternative/complementary signal, not a replacement claim.
+LK_FRAME_STRIDE = 1  # 1 = every extracted frame; raise to skip frames for speed
+LK_FRAME_SIZE = 256  # resize before flow computation (kept separate from CLIP's FRAME_SIZE)
+
+# cv2.goodFeaturesToTrack (Shi-Tomasi corner detection) parameters.
+LK_FEATURE_PARAMS = dict(maxCorners=200, qualityLevel=0.01, minDistance=7, blockSize=7)
+
+# cv2.calcOpticalFlowPyrLK pyramid/termination parameters, kept as plain
+# values here (not cv2.TermCriteria) so this module stays import-light --
+# src/optical_flow.py assembles the actual cv2 criteria tuple from these.
+LK_WIN_SIZE = (15, 15)
+LK_MAX_LEVEL = 2
+LK_CRITERIA_COUNT = 10
+LK_CRITERIA_EPS = 0.03

@@ -171,6 +171,51 @@ task. Not yet superseded.
 
 ---
 
+## 2026-09-18 — [MECHANICS CHECK] XD-Violence riot (B4) class acquired via public HF mirror
+
+**What this is:** a data-acquisition/access check, not a model result — no
+classifier was run against this data yet. Tagged mechanics-check because it
+validates that the target dataset is actually obtainable and clean, which
+every prior entry in this log has been blocked on.
+
+**Access path:** XD-Violence's own site
+(https://roc-ng.github.io/XD-Violence/) is still gated behind a request
+form / OneDrive bulk download, confirmed directly. However, a public
+HuggingFace mirror of the same dataset was found (`jherng/xd-violence`),
+serving individual files over plain HTTPS with no auth or request process.
+Verified directly before committing to a full pull: two sample files
+(one movie-titled filename, one YouTube-ID-style filename) test-downloaded
+successfully (200 OK, valid MP4 per `file`).
+
+**Dataset survey (via the HF tree API, listing every video directory, not
+assumed from documentation):** 4750 total video files across the 5 training
+directories + `test_videos`; 485 carry a B4 (riot) label, including
+combined-label cases like `label_B4-G-0` (a naive `label_B4` substring
+filter would miss these — the filter used checks each hyphenated label
+code). Riot-only subset: 9.78 GiB.
+
+**Result:** all 485 riot clips downloaded via
+`notebooks/xdviolence_riot_pull.ipynb` directly into Colab from the HF
+mirror (no local machine, no OneDrive), saved to Google Drive at
+`My Drive/CVPHG/xdviolence_riot/`. Validated 485/485 on every check: exists
+on disk, correct size vs. manifest, opens in OpenCV, first frame readable.
+Manifest (`manifest_xdviolence_riot.csv`, id/label/split/size/url) saved
+alongside the clips.
+
+**Caveat:** this is the riot/positive class only. The Normal/negative class
+from XD-Violence itself has not been pulled yet (see `context.md`) — the
+same HF-mirror approach should work (filter for the `A` label code instead
+of `B4`), just not run. Until that happens, a real-riot-vs-real-normal
+XD-Violence-native benchmark doesn't exist yet; the n=200 Capitol+RLVS
+result above remains the best real-data benchmark for that comparison. The
+clips also live on Google Drive, not yet copied into this project's local
+`data/` directory.
+
+**Status:** Not superseded. This is the first entry establishing that real
+XD-Violence riot data is actually in hand, not just a stand-in.
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

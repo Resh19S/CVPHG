@@ -40,29 +40,52 @@ has **not** been added yet, by design.
 
 ## XD-Violence status
 
-**Status as of 2026-09-11: request pending / not yet obtained.**
+**Status as of 2026-09-18: riot (B4) class obtained. Normal/negative class
+not yet pulled.**
 
-XD-Violence (https://roc-ng.github.io/XD-Violence/) is the intended primary
-benchmark dataset (Riot class + negative classes). It is gated behind a
-request form / OneDrive-style manual bulk download, not a stable scripted
-download URL — confirmed directly, not assumed. As of the last check, the
-annotation file has not been downloaded and no XD-Violence clips have been
-fetched into this project.
+The dataset's own site (https://roc-ng.github.io/XD-Violence/) is still
+gated behind a request form / OneDrive-style manual bulk download — that
+part of the earlier assessment was correct. What changed: a public,
+ungated HuggingFace mirror of the same dataset was found
+(`jherng/xd-violence`), serving individual files over plain HTTPS with no
+auth and no request process. Verified directly (not assumed): two sample
+files test-downloaded successfully (200 OK, valid MP4) before committing to
+a full pull.
 
-Because of this, two real-world **stand-in** datasets have been used to get
-real-data signal while the XD-Violence request is pending:
-1. **RLVS** (Real Life Violence Situations, via Kaggle) — used first as a
-   `Violence → riot` proxy (superseded — see `findings.md`), and currently
-   still used for its `NonViolence` clips as a real negative class.
-2. **US Capitol riot footage** (Kaggle dataset
-   `jpmiller/protests-against-police-violence`) — real Jan 6, 2021 riot
-   video, now the real positive class for riot detection. This dataset
-   ships **no negative class and no per-clip labels** (verified directly
-   against its accompanying CSV/metadata files, not assumed).
+**What's actually in hand now:** all 485 riot (B4)-labeled clips across the
+full dataset (train + test splits combined; verified against every video
+directory in the HF repo, not just a subset), 9.78 GiB total, downloaded via
+`notebooks/xdviolence_riot_pull.ipynb` and validated 485/485 clean — exists
+on disk, correct size, opens in OpenCV, first frame readable. Stored on
+Google Drive at `My Drive/CVPHG/xdviolence_riot/` (not local, and not yet
+copied into this project's `data/` directory), alongside
+`manifest_xdviolence_riot.csv` (id/label/split/size/url).
 
-**Update this section the moment the XD-Violence request status changes**
-(approved / rejected / data obtained), since it changes which dataset is
-the "real result" target vs. a stand-in.
+**Not yet done:** the Normal/negative class from XD-Violence itself hasn't
+been pulled — the same HF-mirror approach should work for it (list the
+video dirs, filter for the `A` label code instead of `B4`), just not run
+yet. Until that happens, real-riot-vs-real-normal evaluation still needs
+either the RLVS `NonViolence` stand-in (see below) or a fresh XD-Violence
+Normal pull.
+
+The two stand-in datasets used while XD-Violence access was blocked are now
+partially superseded on the positive-class side:
+1. **RLVS** (Real Life Violence Situations, via Kaggle) — its `Violence →
+   riot` proxy mapping was already superseded (see `findings.md`); its
+   `NonViolence` clips remain the only real negative class currently paired
+   with real riot footage, pending an XD-Violence Normal pull. **Local
+   copy deleted 2026-09-14** (freed ~152 MiB) — would need
+   re-downloading via `scripts/build_rlvs_manifest.py` if used again.
+2. **US Capitol riot footage** (Kaggle `jpmiller/protests-against-police-
+   violence`) — was the real riot-positive stand-in; now superseded by the
+   actual XD-Violence riot (B4) clips above as the primary riot source.
+   **Local copy deleted 2026-09-14** (freed ~4.7 GiB) — would need
+   re-downloading via `scripts/build_capitol_manifest.py` if used again
+   (e.g. as a secondary/cross-dataset check).
+
+**Update this section the moment** the XD-Violence Normal class is pulled,
+or the riot clips are copied from Drive into this project's `data/`
+directory, since either changes what "the real benchmark" actually is.
 
 ## Compute environment
 

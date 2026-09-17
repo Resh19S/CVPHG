@@ -9,6 +9,20 @@ done here.*
 
 ---
 
+## Up next — gated on clean data
+
+- **RF-DETR** (Roboflow's real-time DETR object detector) — queued to run
+  once the XD-Violence riot pull (`notebooks/xdviolence_riot_pull.ipynb`)
+  is downloaded and validated clean. Unlike CLIP/SigLIP/BLIP-2 above, this
+  is a per-frame object *detector*, not a whole-clip classifier — its role
+  here would be detecting people/crowds (density, count) and relevant
+  objects (vehicles, weapons) within frames, as a structured feature source
+  feeding into riot classification rather than replacing it. Also the most
+  direct current entry point toward phase-2 fire/burning-vehicle detection
+  (`context.md`) once that's in scope, since vehicle detection is the same
+  kind of task. Blocked on: clean, validated real riot footage to run it
+  against — not meaningful to test on the dummy synthetic clips.
+
 ## Other single-model candidates to test (not yet run)
 
 - **Larger/other OpenCLIP backbones** (ViT-L-14, ViT-H-14 laion2b, etc.) —

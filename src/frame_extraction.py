@@ -83,3 +83,56 @@ def extract_frames(
         raise ValueError(f"Failed to extract any frames from: {video_path}")
 
     return frames
+
+
+def extract_frames_to_dir(
+    video_path: str,
+    out_dir: str,
+    stride: int = 1,
+    resize: int | None = None,
+) -> list[Path]:
+    """
+    Write every `stride`-th frame of `video_path` to `out_dir` as sequentially
+    numbered JPEGs (000000.jpg, 000001.jpg, ...), preserving temporal order --
+    unlike `extract_frames`, which picks a small evenly-spaced subset for
+    single-embedding classifiers. Intended for pipelines that need a
+    consecutive frame sequence, e.g. optical flow (src/optical_flow.py).
+
+    Deterministic: stride=1 always yields every frame in original order, so
+    the same video always yields the same sequence regardless of machine.
+
+    Returns the list of written file paths, in order.
+    """
+    video_path = str(video_path)
+    if not Path(video_path).exists():
+        raise FileNotFoundError(f"Video file not found: {video_path}")
+
+    out_dir = Path(out_dir)
+    out_dir.mkdir(parents=True, exist_ok=True)
+
+    cap = cv2.VideoCapture(video_path)
+    if not cap.isOpened():
+        raise IOError(f"Could not open video: {video_path}")
+
+    written = []
+    frame_idx = 0
+    saved_idx = 0
+    while True:
+        ok, frame_bgr = cap.read()
+        if not ok:
+            break
+        if frame_idx % stride == 0:
+            if resize:
+                frame_bgr = cv2.resize(frame_bgr, (resize, resize), interpolation=cv2.INTER_AREA)
+            out_path = out_dir / f"{saved_idx:06d}.jpg"
+            cv2.imwrite(str(out_path), frame_bgr)
+            written.append(out_path)
+            saved_idx += 1
+        frame_idx += 1
+
+    cap.release()
+
+    if not written:
+        raise ValueError(f"Failed to extract any frames from: {video_path}")
+
+    return written

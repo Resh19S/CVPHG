@@ -9,19 +9,57 @@ done here.*
 
 ---
 
-## Up next — gated on clean data
+## Up next — supervised fusion pipeline (decided 2026-09-19)
 
-- **RF-DETR** (Roboflow's real-time DETR object detector) — queued to run
-  once the XD-Violence riot pull (`notebooks/xdviolence_riot_pull.ipynb`)
-  is downloaded and validated clean. Unlike CLIP/SigLIP/BLIP-2 above, this
-  is a per-frame object *detector*, not a whole-clip classifier — its role
-  here would be detecting people/crowds (density, count) and relevant
-  objects (vehicles, weapons) within frames, as a structured feature source
-  feeding into riot classification rather than replacing it. Also the most
-  direct current entry point toward phase-2 fire/burning-vehicle detection
-  (`context.md`) once that's in scope, since vehicle detection is the same
-  kind of task. Blocked on: clean, validated real riot footage to run it
-  against — not meaningful to test on the dummy synthetic clips.
+**Scope change, confirmed with the user 2026-09-19:** this project now has
+a second, explicitly supervised track alongside the original zero-shot CLIP
+work (which stands as-is, not replaced). Motion branch (Lucas-Kanade
+optical flow) + visual branch (object detection + generic frame embedding
++ video-native action embedding) fused and fed to a trainable
+classification head. Diagram source: pasted into chat 2026-09-18, drawn by
+someone else on the team.
+
+**Confirmed decisions (do not re-litigate without a new instruction):**
+- **RF-DETR first, YOLO later.** The diagram's visual-detection box said
+  YOLO; RF-DETR runs first (already had a mechanics-check notebook before
+  this was raised) since swapping RF-DETR -> YOLO later is a mechanical
+  change, not an architecture change.
+- **MLP head first, present those results, Transformer head after.** Not
+  a simultaneous dual-head ensemble — sequential, MLP results reviewed
+  before starting the Transformer variant.
+- **Binary riot/normal only, for now.** The diagram's 3rd class
+  ("Protest", peaceful/pre-escalation) has **no identified data source**.
+  Checked directly 2026-09-19: the Kaggle
+  `jpmiller/protests-against-police-violence` dataset — the only
+  protest-named dataset already in this project — is 744/748 files real
+  Capitol riot footage, the remaining 4 are non-video metadata
+  (`protests.csv`, `press_incidents.csv`, a PDF codebook, a `.tab` file).
+  It cannot supply peaceful-protest video. Finding a real source for this
+  class is still open and blocks the diagram's full 3-way target.
+- **Runs in Colab on a T4**, reading data straight from Drive (matches how
+  the riot/normal pulls already work) — not local, not CPU.
+
+**Pipeline built 2026-09-19 (not yet run/validated by the user):**
+1. `notebooks/xdviolence_normal_pull.ipynb` — Normal (A-label) class,
+   capped to a seeded 485-clip sample (matched 1:1 to the riot class; full
+   Normal class is 2346 clips / 53.4 GiB, deliberately not all pulled).
+2. `notebooks/feature_extraction_fusion.ipynb` — per clip: LK flow summary
+   stats + RF-DETR person/vehicle counts + DINOv2 frame embedding
+   (mean-pooled) + VideoMAE clip embedding, concatenated into one fused
+   vector, written to `My Drive/CVPHG/fusion_features/features.csv`
+   (resumable — skips clips already extracted).
+3. `notebooks/mlp_fusion_classifier.ipynb` — trains/evaluates an MLP
+   (256,64 hidden units) on the fused features, riot vs. normal, reports
+   accuracy/precision/recall/F1/confusion matrix in this project's usual
+   `results/*.md` + `*_predictions.csv` shape.
+
+**Not logged in `findings.md` yet** — do that once the user has actually
+run these and the numbers have been reviewed, same rule as every other
+entry in that log.
+
+- **RF-DETR → YOLO swap** (mechanical, deferred): once the RF-DETR-based
+  pipeline above is validated, swap `rfdetr` for a YOLO model in
+  `feature_extraction_fusion.ipynb`'s detection step and re-run to compare.
 
 ## Other single-model candidates to test (not yet run)
 

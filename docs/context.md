@@ -87,6 +87,18 @@ partially superseded on the positive-class side:
 or the riot clips are copied from Drive into this project's `data/`
 directory, since either changes what "the real benchmark" actually is.
 
+## Supervised fusion track (added 2026-09-19)
+
+Alongside the zero-shot CLIP work above (which continues as-is, not
+replaced), the project now also has a **supervised** track: motion branch
+(Lucas-Kanade optical flow) + visual branch (RF-DETR detection + DINOv2 +
+VideoMAE embeddings) fused and fed to a trainable classifier head (MLP
+first, Transformer later). This was a deliberate scope decision, confirmed
+with the user 2026-09-19 — not an accidental drift from the zero-shot
+framing. Full decision record, including the RF-DETR/YOLO and MLP/
+Transformer sequencing and the still-unresolved "Protest" class data-source
+gap, is in `docs/roadmap.md` under "Up next — supervised fusion pipeline".
+
 ## Compute environment
 
 Local: dual-boot Fedora/Windows laptop, AMD GPU (no CUDA) — pipeline runs on

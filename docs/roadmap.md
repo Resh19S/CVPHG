@@ -39,23 +39,31 @@ someone else on the team.
 - **Runs in Colab on a T4**, reading data straight from Drive (matches how
   the riot/normal pulls already work) — not local, not CPU.
 
-**Pipeline built 2026-09-19 (not yet run/validated by the user):**
+**Pipeline built 2026-09-19, run the same day — DONE, results logged:**
 1. `notebooks/xdviolence_normal_pull.ipynb` — Normal (A-label) class,
    capped to a seeded 485-clip sample (matched 1:1 to the riot class; full
-   Normal class is 2346 clips / 53.4 GiB, deliberately not all pulled).
+   Normal class is 2346 clips / 53.4 GiB, deliberately not all pulled). Run
+   successfully.
 2. `notebooks/feature_extraction_fusion.ipynb` — per clip: LK flow summary
    stats + RF-DETR person/vehicle counts + DINOv2 frame embedding
    (mean-pooled) + VideoMAE clip embedding, concatenated into one fused
-   vector, written to `My Drive/CVPHG/fusion_features/features.csv`
-   (resumable — skips clips already extracted).
-3. `notebooks/mlp_fusion_classifier.ipynb` — trains/evaluates an MLP
-   (256,64 hidden units) on the fused features, riot vs. normal, reports
-   accuracy/precision/recall/F1/confusion matrix in this project's usual
-   `results/*.md` + `*_predictions.csv` shape.
+   vector. Run successfully over all 970 clips.
+3. `notebooks/mlp_fusion_classifier.ipynb` — trained/evaluated an MLP
+   (256,64 hidden units) on the fused features, riot vs. normal: **92.27%
+   test accuracy**, balanced precision/recall both classes. See
+   `docs/findings.md` (2026-09-19 entry) and `results/
+   mlp_fusion_riot_normal.md` for the full numbers and caveats.
 
-**Not logged in `findings.md` yet** — do that once the user has actually
-run these and the numbers have been reviewed, same rule as every other
-entry in that log.
+Note: the Drive-hosted riot/normal clips and intermediate feature CSVs were
+deleted after this run to free Drive storage (see chat 2026-09-19) — they
+are reproducible on demand via the seeded pull notebooks, not gone for
+good, but don't assume they're sitting on Drive ready to reuse without
+re-running the pulls first.
+
+**Immediate next step, not yet run:** branch ablation (DINOv2+VideoMAE
+alone vs. LK+RF-DETR alone) to find out which branch is actually driving
+the 92.27% — flagged as a real open question in the findings entry, not
+yet answered.
 
 - **RF-DETR → YOLO swap** (mechanical, deferred): once the RF-DETR-based
   pipeline above is validated, swap `rfdetr` for a YOLO model in

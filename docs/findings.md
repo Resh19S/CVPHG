@@ -216,6 +216,61 @@ XD-Violence riot data is actually in hand, not just a stand-in.
 
 ---
 
+## 2026-09-19 — [REAL RESULT] Supervised MLP fusion classifier, real XD-Violence riot vs. normal
+
+**Dataset:** 970 real XD-Violence clips — 485 riot (B4), 485 normal (A),
+both classes pulled from the same public HF mirror used in the entry
+above (`notebooks/xdviolence_riot_pull.ipynb` /
+`xdviolence_normal_pull.ipynb`), both seeded/deterministic samples. Unlike
+every prior real-data entry in this log, both positive and negative class
+come from the *same* source dataset — not a cross-dataset pairing (Capitol
+riot vs. RLVS normal).
+
+**Pipeline:** `notebooks/feature_extraction_fusion.ipynb` builds a 1544-dim
+fused feature vector per clip — Lucas-Kanade optical flow summary stats (4
+dims: mean/max magnitude, mean angle, mean tracked points) + RF-DETR
+person/vehicle detection counts (4 dims) + DINOv2 frame embedding,
+mean-pooled (768 dims) + VideoMAE clip embedding (768 dims). No fine-tuning
+on DINOv2/VideoMAE — frozen pretrained backbones. `notebooks/
+mlp_fusion_classifier.ipynb` trains an MLP (256,64 hidden units) on top,
+80/20 stratified train/test split (776/194, balanced).
+
+**Result:** 92.27% test accuracy. Per-class: normal precision 0.90 / recall
+0.95 / f1 0.92; riot precision 0.95 / recall 0.90 / f1 0.92 (97 support
+each). Confusion matrix: 92/97 normal correct (5 misclassified as riot),
+87/97 riot correct (10 misclassified as normal). Full report:
+`results/mlp_fusion_riot_normal.md`. Raw per-clip predictions CSV
+currently lives only on Drive (`My Drive/CVPHG/fusion_features/results/
+mlp_fusion_riot_normal_predictions.csv`) — not yet copied into this
+project's local `results/` directory.
+
+**Caveat (must be read together, not separately — see full list in the
+results file):**
+1. The MLP's internal validation split hit a perfect 1.0000 score during
+   training (sklearn's `early_stopping` carves ~78 clips off the training
+   set automatically). Test accuracy is 92.27%, not 100%, so this isn't
+   necessarily a red flag, but it means **which branch is actually driving
+   this result is not yet known** — an ablation (DINOv2+VideoMAE alone vs.
+   LK+RF-DETR alone) has not been run. Do not present this as "fusion
+   works" until that's checked; a single strong branch could plausibly
+   explain most of the 92.27%.
+2. Binary riot/normal only. The 3-class target (Normal/Protest/Riot) from
+   the architecture this pipeline implements is still blocked — no data
+   source identified for a peaceful-protest class (checked directly:
+   Kaggle `jpmiller/protests-against-police-violence` is 744/748 files
+   Capitol riot footage, confirmed via a live API query, not assumed).
+3. This is a genuinely cleaner real-data setup than every prior entry in
+   this log — both classes share one source dataset, reducing (not
+   eliminating) the dataset-of-origin confound risk that the Capitol/RLVS
+   pairing carried.
+
+**Status:** Not superseded. First supervised (non-zero-shot) result in this
+project. Does not replace or invalidate the zero-shot CLIP track above —
+a separate, deliberately-added track (see `docs/context.md`, "Supervised
+fusion track").
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

@@ -76,17 +76,52 @@ that part not changing is expected, not new information.
 working, it's holding up as we throw more real data at it. The remaining
 known issue is entirely on the "calm scene" side, and we know what to fix.**
 
+### Test 5 — a different, trainable approach: combine motion + visual signals
+
+Everything above asked a pretrained model "does this look like a riot?"
+with no training at all (zero-shot). We also started a second, separate
+approach: actually train something, using richer features than just "does
+this image look riot-like." For each clip we now compute: how much motion
+is happening and in what direction (a classic computer-vision technique
+called optical flow), how many people/vehicles a detector counts in the
+frame, plus two general-purpose "understand the image/video" AI models'
+own internal representations. All four of those get combined into one
+big feature list per clip, and a small trainable classifier learns to tell
+riot from normal from that.
+
+First real run: 970 real XD-Violence clips (485 riot, 485 calm/normal —
+both from the actual target dataset now, not a stand-in). Result: **92%
+accuracy**, and — importantly — it's not lopsided: it's about equally good
+at catching riots (90% of real riots caught) and equally good at not crying
+wolf on calm footage (95% of calm clips correctly left alone). That's a
+meaningfully different and stronger signal than the zero-shot number above.
+
+**One honest caveat before getting excited:** we don't yet know *which*
+ingredient is doing the work. It could be that the motion-tracking piece is
+pulling real weight, or it could be that the two general AI models alone
+would get basically the same 92% on their own and the motion/detection
+pieces aren't adding anything. We have a cheap follow-up test queued
+(re-run with pieces removed one at a time) to find out before claiming
+"combining these signals is what makes this work."
+
 ### What's still missing
 
-- We still don't have the actual dataset we ultimately want to use
-  (XD-Violence) — that request is still pending. Everything above used
-  stand-in real-world footage while we wait.
+- XD-Violence request status update: the riot class (485 clips) and a
+  matched normal class (485 clips) are now both actually in hand — no
+  longer just pending. What's still missing from XD-Violence itself: a
+  peaceful-protest class doesn't exist in this dataset at all (it's riot
+  vs. everything-else, not riot vs. protest vs. calm) — we checked another
+  dataset that sounded promising for this and confirmed directly it's
+  100% more riot footage, not peaceful protest footage. So that third
+  category still has no source.
 - We haven't touched fire / burning-vehicle detection at all yet — that's
   intentionally phase two, once riot detection itself is solid.
 - We haven't touched audio yet either — video only, for now.
 
-### Next thing to actually do
+### Next things to actually do
 
-Fix the wording we gave the model for "fighting" (it's currently winning
-by default too often) and re-run the same real-footage test to see if the
-overall score goes up once that's corrected.
+1. Run the ablation check on Test 5 (see caveat above) — find out which
+   ingredient is actually responsible for the 92%.
+2. Fix the wording we gave the zero-shot model for "fighting" (it's
+   currently winning by default too often) and re-run the same real-footage
+   test to see if the overall score goes up once that's corrected.

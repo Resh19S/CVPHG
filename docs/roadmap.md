@@ -85,21 +85,20 @@ consequences of this, not glossed over:
   now so "comparable to others' results" isn't assumed true just because
   the full class was pulled.
 
-**DONE 2026-09-27 — branch ablation ran at full scope.** Answer: DINOv2
-alone drives the result (97.88% alone, beats 97.53% full fusion); LK and
-RF-DETR (as currently engineered — 4 scalar summary stats each) carry zero
-riot-discriminating signal at this scale. Full numbers and interpretation:
-`docs/findings.md` (2026-09-27 entry), `results/branch_ablation_full_scope.md`.
-This changes what "next" means — see below, not the ablation itself.
+**DONE 2026-09-27 — branch ablation ran at full scope, then confirmed
+multi-seed.** DINOv2 is clearly the dominant contributor — LK and RF-DETR
+(as currently engineered — 4 scalar summary stats each) carry zero
+riot-discriminating signal at this scale, confirmed stable, not a
+single-split fluke. **Revised from the initial single-split read:**
+"DINOv2 alone beats full fusion" did NOT hold up across a 6-seed check
+(dinov2_only 97.21%±0.85% vs. full_fusion 97.24%±0.65% — statistically
+tied, gap smaller than the noise). Correct conclusion: DINOv2 dominates;
+adding VideoMAE/LK/RF-DETR on top neither reliably helps nor hurts. Full
+numbers: `docs/findings.md` (two 2026-09-27 entries, read together),
+`results/branch_ablation_full_scope.md`.
 
 **Immediate next steps, not yet run:**
-1. **Multi-seed robustness check** — the DINOv2-only-vs-full-fusion gap
-   (97.88% vs 97.53%) is from a single 80/20 split, not cross-validated.
-   Added a multi-seed comparison cell to
-   `notebooks/ablation_fusion_branches.ipynb` (2026-09-27) — run it before
-   treating "DINOv2 alone beats fusion" as settled rather than "roughly
-   tied."
-2. **Decide what to do about LK/RF-DETR being dead weight.** Two honest
+1. **Decide what to do about LK/RF-DETR being dead weight.** Two honest
    options, not mutually exclusive: (a) improve their feature
    representation (currently just 4 aggregated scalars each — try
    per-frame detection sequences, richer motion descriptors) before
@@ -107,7 +106,7 @@ This changes what "next" means — see below, not the ablation itself.
    alone as the strongest/cheapest option found so far and stop carrying
    the other branches by default just because the original diagram
    included them.
-3. **RF-DETR → YOLO swap** (mechanical, deferred, lower priority now):
+2. **RF-DETR → YOLO swap** (mechanical, deferred, lower priority now):
    swapping the detection branch doesn't matter much if that branch
    isn't contributing regardless of which detector produces it — worth
    revisiting only after (2) above is resolved.

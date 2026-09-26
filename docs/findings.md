@@ -335,9 +335,56 @@ architecture assumed:**
 3. Still binary riot/normal only — same Protest-class data gap as every
    prior entry.
 
-**Status:** Not superseded. First result in this project to identify
-which branch is actually responsible for a fusion classifier's accuracy,
-rather than assuming the whole architecture is jointly responsible.
+**Status:** Not superseded, but caveat 1's specific claim ("DINOv2 alone
+beats full fusion") is **revised** by the multi-seed check entry directly
+below, run the same day — read the two together. First result in this
+project to identify which branch is actually responsible for a fusion
+classifier's accuracy, rather than assuming the whole architecture is
+jointly responsible; that finding (DINOv2 dominant, LK/RF-DETR contribute
+nothing) stands. Only the finer point of whether DINOv2 alone beats
+full fusion is walked back.
+
+---
+
+## 2026-09-27 — [REAL RESULT] Multi-seed check: DINOv2-only vs. full-fusion gap is noise, not a real effect
+
+**What this is:** the robustness check the entry above explicitly queued
+before treating "DINOv2 alone beats full fusion" as settled. Same
+2831-clip full-scope dataset, same two feature sets (`dinov2_only`,
+`full_fusion`), retrained across 6 different train/test split seeds
+(`notebooks/ablation_fusion_branches.ipynb`, Step 5) instead of the single
+split used above.
+
+**Result:**
+
+| branch group | mean accuracy | std | per-seed accuracies |
+|---|---|---|---|
+| dinov2_only | 97.21% | ±0.85% | 0.9577, 0.9683, 0.9683, 0.9841, 0.9753, 0.9788 |
+| full_fusion | 97.24% | ±0.65% | 0.9806, 0.9753, 0.9612, 0.9753, 0.9665, 0.9753 |
+
+Mean gap: **-0.03 percentage points** (full_fusion very slightly ahead on
+average now, effectively reversed from the single-split result).
+Average per-seed std: 0.75 percentage points — the gap is smaller than
+the run-to-run noise.
+
+**Revised conclusion:** the single-split finding that "DINOv2 alone beats
+full fusion" does not hold up — across seeds the two are statistically
+indistinguishable (~97.2% either way). The correct, defensible statement
+is: **DINOv2 is clearly the dominant contributor (LK/RF-DETR alone remain
+at the trivial baseline per the entry above, unaffected by this check),
+but adding VideoMAE/LK/RF-DETR on top of DINOv2 neither reliably helps nor
+reliably hurts** — not "fusion is worse," not "fusion is better," just
+not measurably different from DINOv2 alone at this scale, with this MLP,
+on this split methodology.
+
+**Caveat:** only `dinov2_only` and `full_fusion` were re-checked across
+seeds (the two closest contenders) — `videomae_only`, `dinov2_videomae`,
+and the degenerate LK/RF-DETR groups were not re-run multi-seed, since
+their single-split gaps were large enough relative to typical noise here
+(multiple points, not fractions of a point) to not be in question.
+
+**Status:** Not superseded. Revises the specific "DINOv2 alone wins"
+claim from the entry directly above — read together, not in isolation.
 
 ---
 

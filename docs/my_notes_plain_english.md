@@ -113,11 +113,20 @@ good numbers.
 
 **The honest answer: one ingredient (DINOv2, one of the two general "look
 at this and understand it" AI models) is doing basically all the work.**
-On its own, it scored *slightly better* (97.9%) than all four ingredients
-combined (97.5%). Meanwhile, the motion-tracking piece and the
-people/vehicle-counting piece — alone or combined — barely did better
-than just guessing "calm" every single time. That's not "a small
-contribution," that's "contributing nothing" as currently built.
+Meanwhile, the motion-tracking piece and the people/vehicle-counting
+piece — alone or combined — barely did better than just guessing "calm"
+every single time. That's not "a small contribution," that's
+"contributing nothing" as currently built.
+
+**Update, same day:** the first pass looked like DINOv2 alone (97.9%) was
+even slightly *better* than all four combined (97.5%) — but we double
+checked that before trusting it (re-ran it 6 different ways, since one
+single comparison can just be lucky or unlucky), and that specific gap
+didn't hold up. Re-checked properly, the two are basically tied (~97.2%
+either way). So the accurate way to say this is: **DINOv2 is clearly
+doing almost all the work, but adding the other three ingredients on top
+doesn't measurably help *or* hurt** — not "worse," not "better," just
+not making a real difference yet.
 
 **What this means in plain terms:** the story isn't "combining four
 signals makes this work." It's closer to "one strong ingredient does
@@ -149,12 +158,9 @@ calm examples to trivially guess.
 
 ### Next things to actually do
 
-1. Double-check Test 6's finding isn't a fluke of one lucky/unlucky
-   train-test split (re-run it a few different ways) before fully
-   committing to "one ingredient alone is enough."
-2. Decide what to do about the two underperforming ingredients — either
+1. Decide what to do about the two underperforming ingredients — either
    give them a richer/better way to describe what they see, or accept
    they're not pulling weight yet and stop leaning on them by default.
-3. Fix the wording we gave the zero-shot model for "fighting" (it's
+2. Fix the wording we gave the zero-shot model for "fighting" (it's
    currently winning by default too often) and re-run the same real-footage
    test to see if the overall score goes up once that's corrected.

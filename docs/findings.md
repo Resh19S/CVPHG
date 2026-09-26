@@ -264,10 +264,80 @@ results file):**
    eliminating) the dataset-of-origin confound risk that the Capitol/RLVS
    pairing carried.
 
-**Status:** Not superseded. First supervised (non-zero-shot) result in this
-project. Does not replace or invalidate the zero-shot CLIP track above —
-a separate, deliberately-added track (see `docs/context.md`, "Supervised
-fusion track").
+**Status:** Not superseded on the accuracy numbers (a different, larger,
+imbalanced-scope run below reports its own numbers rather than replacing
+these). Caveat 1's open question — which branch is actually driving this
+— **is answered by the 2026-09-27 entry below.**
+
+---
+
+## 2026-09-27 — [REAL RESULT] Full-scope MLP + branch ablation — DINOv2 alone drives the result, LK/RF-DETR contribute nothing
+
+**Dataset:** 2831 real XD-Violence clips — 485 riot (unchanged), 2346
+normal (full class this time, not the capped 485-clip balanced sample —
+direction from Hith's brother, to make results comparable to published
+XD-Violence benchmarks that use the full dataset). ~4.8:1 imbalanced by
+design. Same seed (42), same 80/20 stratified split as every other entry
+in this log.
+
+**Part A — full-fusion MLP at full scope:** 97.53% test accuracy, 95.24%
+balanced accuracy (2264 train / 567 test). Per-class: normal precision
+0.98 / recall 0.99 / f1 0.99 (470 support); riot precision 0.94 / recall
+0.92 / f1 0.93 (97 support). Confusion matrix: 464/470 normal correct (6
+misclassified as riot), 89/97 riot correct (8 misclassified as normal).
+Full report: `results/mlp_fusion_full_scope.md`. Compared against the
+2026-09-19 balanced-scope entry, **balanced accuracy improved** (92.27% →
+95.24%) and riot recall held/improved (90% → 92%) — the extra real Normal
+data appears to have genuinely helped, not just made the raw number look
+better via class imbalance.
+
+**Part B — branch ablation (answers the 2026-09-19 open question):**
+same dataset/split, MLP retrained on different column subsets. Full
+table: `results/branch_ablation_full_scope.md`.
+
+| branch group | features | test accuracy | riot precision | riot recall |
+|---|---|---|---|---|
+| dinov2_only | 768 | **97.88%** | 0.947 | 0.928 |
+| full_fusion | 1544 | 97.53% | 0.937 | 0.918 |
+| dinov2_videomae | 1536 | 97.18% | 0.935 | 0.897 |
+| videomae_only | 768 | 93.83% | 0.888 | 0.732 |
+| lk_only | 4 | 82.89% | 0.000 | 0.000 |
+| rfdetr_only | 4 | 82.89% | 0.000 | 0.000 |
+| lk_rfdetr | 8 | 82.72% | 0.478 | 0.113 |
+
+**Result — the open question is answered, and it's not the answer the
+architecture assumed:**
+1. **DINOv2 alone is the single best-performing group in the entire
+   table** — it beats `full_fusion` (all four branches combined).
+2. **LK and RF-DETR, as currently engineered (4 scalar summary stats
+   each), carry zero riot-discriminating signal at this scale.**
+   `lk_only` and `rfdetr_only` sit exactly at the trivial majority-class
+   baseline (82.89% = 470/567, the Normal fraction of the test set) with
+   riot precision/recall of 0.00/0.00 — the MLP is simply predicting
+   "normal" for every clip when given only these features. `lk_rfdetr`
+   combined barely moves off that baseline (11.3% riot recall).
+3. **Adding branches on top of DINOv2 does not help, and costs a small
+   amount** — `dinov2_videomae` and `full_fusion` both score below
+   `dinov2_only` alone.
+
+**Caveat (must be read together, not separately):**
+1. This is a single 80/20 split, not cross-validated. The ~0.35-point gap
+   between `dinov2_only` and `full_fusion` could plausibly be split-noise
+   rather than a reproducible effect — treat the finding as "fusion
+   doesn't clearly help" rather than "DINOv2 alone is definitively best"
+   until a multi-seed check confirms it (queued in
+   `notebooks/ablation_fusion_branches.ipynb`, not yet run).
+2. This does not mean motion/detection signals are inherently useless for
+   riot detection — it means *this specific 4-scalar-summary encoding* of
+   them carries no signal at this scale. A richer representation (e.g.
+   per-frame detection sequences instead of aggregated counts, denser
+   motion descriptors) has not been tried.
+3. Still binary riot/normal only — same Protest-class data gap as every
+   prior entry.
+
+**Status:** Not superseded. First result in this project to identify
+which branch is actually responsible for a fusion classifier's accuracy,
+rather than assuming the whole architecture is jointly responsible.
 
 ---
 

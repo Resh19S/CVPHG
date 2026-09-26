@@ -85,17 +85,32 @@ consequences of this, not glossed over:
   now so "comparable to others' results" isn't assumed true just because
   the full class was pulled.
 
-**Immediate next steps, not yet run:**
-1. Branch ablation (DINOv2+VideoMAE alone vs. LK+RF-DETR alone) to find
-   out which branch is actually driving the 92.27% — flagged as a real
-   open question in the findings entry, not yet answered.
-2. Re-pull the full Normal class and re-run the pipeline at full scope
-   (per the 2026-09-26 scope change above), then re-evaluate with
-   balanced accuracy in view alongside raw accuracy.
+**DONE 2026-09-27 — branch ablation ran at full scope.** Answer: DINOv2
+alone drives the result (97.88% alone, beats 97.53% full fusion); LK and
+RF-DETR (as currently engineered — 4 scalar summary stats each) carry zero
+riot-discriminating signal at this scale. Full numbers and interpretation:
+`docs/findings.md` (2026-09-27 entry), `results/branch_ablation_full_scope.md`.
+This changes what "next" means — see below, not the ablation itself.
 
-- **RF-DETR → YOLO swap** (mechanical, deferred): once the RF-DETR-based
-  pipeline above is validated, swap `rfdetr` for a YOLO model in
-  `feature_extraction_fusion.ipynb`'s detection step and re-run to compare.
+**Immediate next steps, not yet run:**
+1. **Multi-seed robustness check** — the DINOv2-only-vs-full-fusion gap
+   (97.88% vs 97.53%) is from a single 80/20 split, not cross-validated.
+   Added a multi-seed comparison cell to
+   `notebooks/ablation_fusion_branches.ipynb` (2026-09-27) — run it before
+   treating "DINOv2 alone beats fusion" as settled rather than "roughly
+   tied."
+2. **Decide what to do about LK/RF-DETR being dead weight.** Two honest
+   options, not mutually exclusive: (a) improve their feature
+   representation (currently just 4 aggregated scalars each — try
+   per-frame detection sequences, richer motion descriptors) before
+   concluding they're fundamentally uninformative, or (b) accept DINOv2
+   alone as the strongest/cheapest option found so far and stop carrying
+   the other branches by default just because the original diagram
+   included them.
+3. **RF-DETR → YOLO swap** (mechanical, deferred, lower priority now):
+   swapping the detection branch doesn't matter much if that branch
+   isn't contributing regardless of which detector produces it — worth
+   revisiting only after (2) above is resolved.
 
 ## Other single-model candidates to test (not yet run)
 

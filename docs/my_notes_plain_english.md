@@ -104,6 +104,35 @@ pieces aren't adding anything. We have a cheap follow-up test queued
 (re-run with pieces removed one at a time) to find out before claiming
 "combining these signals is what makes this work."
 
+### Test 6 — we answered Test 5's caveat, and it's a bit deflating
+
+We re-ran everything on the full real dataset (485 riot clips + all 2346
+real calm clips, not just a small matched sample) and, separately, tried
+each ingredient alone to see which one actually deserves credit for the
+good numbers.
+
+**The honest answer: one ingredient (DINOv2, one of the two general "look
+at this and understand it" AI models) is doing basically all the work.**
+On its own, it scored *slightly better* (97.9%) than all four ingredients
+combined (97.5%). Meanwhile, the motion-tracking piece and the
+people/vehicle-counting piece — alone or combined — barely did better
+than just guessing "calm" every single time. That's not "a small
+contribution," that's "contributing nothing" as currently built.
+
+**What this means in plain terms:** the story isn't "combining four
+signals makes this work." It's closer to "one strong ingredient does
+almost everything, and we're carrying two extra ingredients that aren't
+currently pulling their weight." That's a very normal, useful thing to
+find out early — it means effort should go into either improving how the
+motion/counting signals are represented, or being honest that the
+simpler, cheaper single-ingredient version is what's actually working
+right now.
+
+One thing that did genuinely improve: with all that extra real calm
+footage, the model got *better* at fairly telling calm from riot (95.2%
+vs. 92.3% before), not just look better on paper from having way more
+calm examples to trivially guess.
+
 ### What's still missing
 
 - XD-Violence request status update: the riot class (485 clips) and a
@@ -120,8 +149,12 @@ pieces aren't adding anything. We have a cheap follow-up test queued
 
 ### Next things to actually do
 
-1. Run the ablation check on Test 5 (see caveat above) — find out which
-   ingredient is actually responsible for the 92%.
-2. Fix the wording we gave the zero-shot model for "fighting" (it's
+1. Double-check Test 6's finding isn't a fluke of one lucky/unlucky
+   train-test split (re-run it a few different ways) before fully
+   committing to "one ingredient alone is enough."
+2. Decide what to do about the two underperforming ingredients — either
+   give them a richer/better way to describe what they see, or accept
+   they're not pulling weight yet and stop leaning on them by default.
+3. Fix the wording we gave the zero-shot model for "fighting" (it's
    currently winning by default too often) and re-run the same real-footage
    test to see if the overall score goes up once that's corrected.

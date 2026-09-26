@@ -129,8 +129,20 @@ yet answered.
   currently just a literature pointer, not investigated at all yet.
 - Sub-segment labeling within a single riot clip (calm opening moments vs.
   escalation moments) to test an "early warning" framing analogous to the
-  original stampede paper's premise — blocked on whether that granularity
-  of labels exists or would need to be created by hand.
+  original stampede paper's premise — **no longer fully blocked**: Hith's
+  brother raised this exact idea 2026-09-26 ("tell when a protest/riot is
+  starting, via a threshold over segments"), and a concrete partial lead
+  already exists — `annotations.txt` (fetched directly from
+  roc-ng.github.io while investigating the XD-Violence access path, see
+  the 2026-09-18 findings entry) has frame-level start/end intervals per
+  anomaly, but **only for the `test_videos` split** (800 clips, not the
+  full 4750). Training clips only carry a whole-clip label baked into the
+  filename, no frame-level timing. Worth checking whether the test-split
+  intervals alone (101 riot clips) are enough to prototype a threshold/
+  onset detector before deciding whether train-split labels need to be
+  created by hand. Explicitly deferred as its own phase ("work
+  independently for now, integrate later") — not blocking the current
+  clip-level fusion classifier work.
 
 ## Status
 

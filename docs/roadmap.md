@@ -60,10 +60,38 @@ are reproducible on demand via the seeded pull notebooks, not gone for
 good, but don't assume they're sitting on Drive ready to reuse without
 re-running the pulls first.
 
-**Immediate next step, not yet run:** branch ablation (DINOv2+VideoMAE
-alone vs. LK+RF-DETR alone) to find out which branch is actually driving
-the 92.27% — flagged as a real open question in the findings entry, not
-yet answered.
+**Scope change 2026-09-26 — train on the full Normal class, not the capped
+485-clip sample.** Direction from Hith's brother: train fully on
+XD-Violence so the architecture is comparable to published results, not
+just internally. `xdviolence_normal_pull.ipynb`'s `TARGET_COUNT` default
+changed from `485` to `None` (full class — 2346 clips, 53.4 GiB). Real
+consequences of this, not glossed over:
+- **Class imbalance:** 2346 normal vs. 485 riot (~4.8:1), not the balanced
+  1:1 set the 92.27% result was measured on. `mlp_fusion_classifier.ipynb`
+  and `ablation_fusion_branches.ipynb` now report balanced accuracy
+  alongside raw accuracy for this reason — raw accuracy alone is
+  misleading here (always predicting "normal" already scores ~83%).
+- **Storage:** full scope is ~63 GiB combined (riot + normal) vs. the
+  ~19.5 GiB that already forced a paid Drive upgrade. Confirm the current
+  plan has headroom before running the pull.
+- **Comparability caveat, not yet resolved:** pulling the full Normal
+  class is necessary but not sufficient for genuine comparability to
+  published XD-Violence benchmarks. Most published baselines on this
+  dataset (a) use the dataset's official train/test split specifically
+  (not a fresh random 80/20 over a re-pooled sample) and (b) report
+  frame-level Average Precision on the anomaly-detection task, not
+  whole-clip accuracy on a riot-vs-normal binary split. Matching either
+  of those would be more work than what's built so far — flagging this
+  now so "comparable to others' results" isn't assumed true just because
+  the full class was pulled.
+
+**Immediate next steps, not yet run:**
+1. Branch ablation (DINOv2+VideoMAE alone vs. LK+RF-DETR alone) to find
+   out which branch is actually driving the 92.27% — flagged as a real
+   open question in the findings entry, not yet answered.
+2. Re-pull the full Normal class and re-run the pipeline at full scope
+   (per the 2026-09-26 scope change above), then re-evaluate with
+   balanced accuracy in view alongside raw accuracy.
 
 - **RF-DETR → YOLO swap** (mechanical, deferred): once the RF-DETR-based
   pipeline above is validated, swap `rfdetr` for a YOLO model in

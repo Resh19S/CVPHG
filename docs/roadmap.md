@@ -97,19 +97,34 @@ adding VideoMAE/LK/RF-DETR on top neither reliably helps nor hurts. Full
 numbers: `docs/findings.md` (two 2026-09-27 entries, read together),
 `results/branch_ablation_full_scope.md`.
 
-**Immediate next steps, not yet run:**
-1. **Decide what to do about LK/RF-DETR being dead weight.** Two honest
-   options, not mutually exclusive: (a) improve their feature
-   representation (currently just 4 aggregated scalars each — try
-   per-frame detection sequences, richer motion descriptors) before
-   concluding they're fundamentally uninformative, or (b) accept DINOv2
-   alone as the strongest/cheapest option found so far and stop carrying
-   the other branches by default just because the original diagram
-   included them.
-2. **RF-DETR → YOLO swap** (mechanical, deferred, lower priority now):
-   swapping the detection branch doesn't matter much if that branch
-   isn't contributing regardless of which detector produces it — worth
-   revisiting only after (2) above is resolved.
+**PREPARED 2026-10-05, not yet run — two things queued per Hith's
+direct asks:**
+1. **LK branch rewrite** (`feature_extraction_fusion.ipynb`), targeting
+   "can we get the dead-weight branches from ~83% toward ~90%":
+   two verified fixes, not guesses — (a) frames are now resized to a
+   fixed size before flow computation (the original never resized;
+   raw pixel-magnitude flow wasn't comparable across clips of very
+   different native resolutions — movie vs. YouTube sources), and
+   (b) motion is now sampled from 3 windows spread across the clip
+   (start/~40%/~80%) instead of only the first ~2-3 seconds from the
+   start. Same 4-dim output schema, so the existing ablation groups
+   keep working unmodified. **Not validated yet** — first thing to check
+   once run: does `lk_only` move off the 82.89% trivial-baseline floor
+   at all.
+2. **OpenCLIP branch added** (ViT-L-14, `open_clip`, frozen, same
+   sparse-frame-then-mean-pool pattern as DINOv2) — per the "pure
+   brainstorm, could another backbone match/surpass DINOv2" question.
+   `ablation_fusion_branches.ipynb` already has `openclip_only` and
+   `dinov2_openclip` comparison groups ready for when this is run.
+3. RF-DETR frame-count bump (4→12-16 sparse frames) was also discussed
+   as a lever but **not requested yet** — only LK items (a)/(b) above
+   and OpenCLIP were asked to be made ready. Revisit RF-DETR's own
+   sparse-sampling blind-spot separately if/when asked.
+
+**Deferred, lower priority:**
+- **RF-DETR → YOLO swap** (mechanical): moot while RF-DETR's branch
+  itself isn't contributing regardless of which detector produces it —
+  revisit once the LK/RF-DETR dead-weight question above is resolved.
 
 ## Other single-model candidates to test (not yet run)
 

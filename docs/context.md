@@ -131,3 +131,41 @@ Practical consequences of the move, already handled but worth knowing:
   regenerate via the `build_*_manifest.py` scripts.
 - Kaggle credentials (`~/.kaggle/access_token`) live outside the project
   directory and were unaffected by the move.
+
+## Published XD-Violence benchmarks vs. this project's task (added 2026-10-08)
+
+**This project's accuracy numbers (currently ~97-98%) are not directly
+comparable to published XD-Violence SOTA results (~85-87% AP), and
+presenting them side by side without this context would be misleading.**
+Checked directly (not assumed) via the actual comparison table in a 2023
+paper ("Weakly-Supervised Video Anomaly Detection with Snippet Anomalous
+Attention," arXiv:2309.16309) plus cross-checking other recent work —
+current best found: DSANet at 86.95% AP; other recent methods (ReFLIP
+85.81%, TCVADS 85.58%, VadCLIP 84.51%) cluster in the low-to-mid 80s.
+
+**The published task is a different, harder problem, not a worse version
+of the same one:**
+- **Metric:** frame-level Average Precision (a precision-recall curve
+  over every frame), not clip-level classification accuracy.
+- **Classes:** all 6 XD-Violence violence classes (Abuse, Car Accident,
+  Explosion, Fighting, Riot, Shooting) lumped together as one "abnormal"
+  label against Normal — not Riot specifically vs. Normal.
+- **Input:** the 800 official full **untrimmed** test videos — the model
+  must locate *where* in a long, multi-scene video an anomaly occurs.
+  This project classifies already-**pre-trimmed** clips, isolated to the
+  event in advance.
+- **Supervision:** published methods train **weakly-supervised** (only a
+  video-level "contains an anomaly somewhere" label). This project
+  trains on direct, already-correct clip-level labels.
+
+**What would be needed to produce a genuinely comparable number:**
+reframe as frame-level anomaly localization over the official untrimmed
+test set, with all 6 classes lumped as "abnormal," trained weakly-
+supervised — a substantially larger undertaking than the current
+clip-level binary classifier. Not started, not currently planned unless
+explicitly requested.
+
+**How to talk about current results until/unless that's built:** as "a
+strong result on a well-defined, narrower sub-problem" (Riot vs. Normal,
+pre-trimmed, directly supervised) — never as "beats published SOTA,"
+since the tasks aren't the same thing.

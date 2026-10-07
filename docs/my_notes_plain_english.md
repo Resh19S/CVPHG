@@ -142,6 +142,48 @@ footage, the model got *better* at fairly telling calm from riot (95.2%
 vs. 92.3% before), not just look better on paper from having way more
 calm examples to trivially guess.
 
+### Test 7 — tried a second strong AI model, and this time combining really did help
+
+We added a second general-purpose "look and understand" AI model
+(OpenCLIP, a different, bigger model than DINOv2) to see if it could
+match or beat DINOv2 on its own — pure curiosity, not because anything
+was wrong with DINOv2.
+
+**It's about equally good on its own** (98.1% vs. DINOv2's 97.9% — too
+close to call from one test alone). **But combining DINOv2 + the video
+model + OpenCLIP together, and properly double-checking it across 6
+different random splits, gave a real, repeatable improvement: 98.35%,
+consistently about 1 percentage point better than DINOv2 alone, every
+single time we tested it.**
+
+This is the opposite lesson from Test 6. Last time, combining ingredients
+didn't help because two of the four ingredients (motion-tracking,
+people-counting) were contributing nothing — adding dead weight to a
+strong ingredient doesn't help. This time, we swapped the dead weight
+out for a second genuinely strong ingredient, and the combination
+clearly beat any single ingredient alone. So the real lesson isn't
+"combining never helps" — it's "combining only helps when every
+ingredient you add is actually pulling its weight."
+
+**Honest context-check on how good 98% actually is:** we looked up what
+other researchers have published on this same dataset. Their best
+published results are around 87%, which sounds like we're doing much
+better — but we checked carefully and that's not a fair comparison. They're
+solving a harder version of the problem: watching a long, unedited video
+and figuring out *where* within it something bad happens, lumping all six
+violence types together, using much weaker training labels. We're
+classifying short clips that are already cut down to the event, just one
+violence type (riot) against calm footage, with much stronger/clearer
+training labels. So our 98% is a strong result on an easier, narrower
+question — not proof we've beaten what's been published. Worth being
+upfront about that distinction any time these numbers come up.
+
+**What's not finished yet:** we also tried to fix the two underperforming
+ingredients from Test 6 (see "Next things to actually do" below) but that
+run got paused partway through (about 1 in 12 clips done) to prioritize
+testing OpenCLIP first — so we still don't know if that fix actually
+worked. That's the next thing to pick back up.
+
 ### What's still missing
 
 - XD-Violence request status update: the riot class (485 clips) and a
@@ -158,9 +200,14 @@ calm examples to trivially guess.
 
 ### Next things to actually do
 
-1. Decide what to do about the two underperforming ingredients — either
-   give them a richer/better way to describe what they see, or accept
-   they're not pulling weight yet and stop leaning on them by default.
-2. Fix the wording we gave the zero-shot model for "fighting" (it's
+1. **Finish the paused fix-attempt on the two underperforming
+   ingredients** (motion-tracking, people-counting) — only ~8% done
+   before we paused it to test OpenCLIP instead. Still don't know if the
+   fix worked.
+2. Double-check whether OpenCLIP specifically (not just the 3-ingredient
+   combo) is a real improvement on its own, and whether the video model
+   is pulling its weight in the winning combination or just along for
+   the ride.
+3. Fix the wording we gave the zero-shot model for "fighting" (it's
    currently winning by default too often) and re-run the same real-footage
    test to see if the overall score goes up once that's corrected.

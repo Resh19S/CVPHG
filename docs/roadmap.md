@@ -97,8 +97,7 @@ adding VideoMAE/LK/RF-DETR on top neither reliably helps nor hurts. Full
 numbers: `docs/findings.md` (two 2026-09-27 entries, read together),
 `results/branch_ablation_full_scope.md`.
 
-**PREPARED 2026-10-05, not yet run — two things queued per Hith's
-direct asks:**
+**2026-10-05, queued per Hith's direct asks — status as of 2026-10-08:**
 1. **LK branch rewrite** (`feature_extraction_fusion.ipynb`), targeting
    "can we get the dead-weight branches from ~83% toward ~90%":
    two verified fixes, not guesses — (a) frames are now resized to a
@@ -108,18 +107,46 @@ direct asks:**
    (b) motion is now sampled from 3 windows spread across the clip
    (start/~40%/~80%) instead of only the first ~2-3 seconds from the
    start. Same 4-dim output schema, so the existing ablation groups
-   keep working unmodified. **Not validated yet** — first thing to check
-   once run: does `lk_only` move off the 82.89% trivial-baseline floor
-   at all.
+   keep working unmodified.
+   **STILL NOT VALIDATED — re-extraction run paused at 237/2831 clips**
+   (interrupted to prioritize OpenCLIP, see item 2). Partial file
+   renamed `My Drive/CVPHG/fusion_features/_incomplete_lk_rfdetr.csv` so
+   it doesn't get silently picked up by `ablation_fusion_branches.ipynb`'s
+   glob. **To resume:** rename it back to `features_lk_rfdetr.csv`, set
+   `BRANCHES = {'lk', 'rfdetr'}`, re-run `feature_extraction_fusion.ipynb`
+   — resumability picks up from clip 238. Whether `lk_only` actually
+   moves off the 82.89%/0%-riot-recall floor is **still an open,
+   unanswered question.**
 2. **OpenCLIP branch added** (ViT-L-14, `open_clip`, frozen, same
    sparse-frame-then-mean-pool pattern as DINOv2) — per the "pure
    brainstorm, could another backbone match/surpass DINOv2" question.
-   `ablation_fusion_branches.ipynb` already has `openclip_only` and
-   `dinov2_openclip` comparison groups ready for when this is run.
+   **DONE AND CONFIRMED 2026-10-08:** `openclip_only` (98.06%) edges
+   out `dinov2_only` (97.88%) on a single split (too small a gap to
+   trust alone), but combining DINOv2+VideoMAE+OpenCLIP into one fusion
+   (98.35% mean, multi-seed confirmed, +1.15pp over DINOv2 alone,
+   exceeds noise) is a **real, validated improvement** — the first
+   confirmed case in this project where fusion beats a single backbone.
+   Full numbers: `docs/findings.md` (2026-10-08 entry),
+   `results/full_fusion_dinov2_videomae_openclip.md`.
 3. RF-DETR frame-count bump (4→12-16 sparse frames) was also discussed
    as a lever but **not requested yet** — only LK items (a)/(b) above
    and OpenCLIP were asked to be made ready. Revisit RF-DETR's own
    sparse-sampling blind-spot separately if/when asked.
+
+**Immediate next steps, not yet run:**
+1. **Resume the paused LK/RF-DETR re-extraction** (see item 1 above) —
+   still the only way to answer whether the LK fix worked.
+2. **Isolate which part of the OpenCLIP win matters**: multi-seed check
+   was only run for `dinov2_only` vs. the 3-way `full_fusion` — not yet
+   confirmed whether `openclip_only` or `dinov2_openclip` (2-way) alone
+   are robust improvements, or whether VideoMAE's presence in the
+   winning combo is doing real work (it's the weakest branch alone,
+   93.8%) vs. just coming along for the ride.
+3. **Comparability to published benchmarks remains unresolved** — now
+   quantified (`docs/context.md`, 2026-10-08): published SOTA is ~87%
+   frame-level AP on a materially different, harder task (all 6 classes
+   lumped, untrimmed video, weakly-supervised). Matching that protocol
+   is a substantially bigger build, not started.
 
 **Deferred, lower priority:**
 - **RF-DETR → YOLO swap** (mechanical): moot while RF-DETR's branch

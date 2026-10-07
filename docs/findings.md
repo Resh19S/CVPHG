@@ -388,6 +388,99 @@ claim from the entry directly above — read together, not in isolation.
 
 ---
 
+## 2026-10-08 — [REAL RESULT] OpenCLIP added — DINOv2+VideoMAE+OpenCLIP fusion confirmed to beat DINOv2 alone (multi-seed)
+
+**What changed:** per two direct requests (2026-10-05) — (1) rewrite the
+LK branch to fix two verified bugs (no resize before flow computation,
+motion only sampled from the first ~2-3 seconds of each clip), and (2)
+add OpenCLIP (ViT-L-14, `open_clip`) as a new frozen-backbone branch,
+pure brainstorm on whether another model could match/surpass DINOv2.
+This entry covers (2) and its downstream results. (1) is **prepared but
+not completed** — see caveat below.
+
+**Dataset:** same 2831-clip full-scope set (485 riot, 2346 normal) as the
+2026-09-27 entries.
+
+**Part A — OpenCLIP branch ablation (single 80/20 split):**
+
+| branch group | features | test accuracy | riot precision | riot recall |
+|---|---|---|---|---|
+| full_fusion (dinov2+videomae+openclip) | 2304 | **98.41%** | 0.978 | 0.928 |
+| dinov2_openclip | 1536 | 98.24% | 0.958 | 0.938 |
+| openclip_only | 768 | 98.06% | 0.939 | 0.948 |
+| dinov2_only | 768 | 97.88% | 0.947 | 0.928 |
+| dinov2_videomae | 1536 | 97.18% | 0.935 | 0.897 |
+| videomae_only | 768 | 93.83% | 0.888 | 0.732 |
+
+`lk_only`/`rfdetr_only`/`lk_rfdetr` not evaluated this run — their
+feature file was incomplete (see caveat 1 below) and deliberately
+excluded rather than merged in, since the ablation notebook's merge+
+`dropna()` would otherwise have silently shrunk every group's sample to
+~237 clips.
+
+**Part B — multi-seed confirmation (6 seeds):** this time the fusion
+result holds up, unlike the 2026-09-27 single-split finding that didn't
+survive multi-seed testing.
+
+| group | mean accuracy | std |
+|---|---|---|
+| full_fusion (dinov2+videomae+openclip) | **98.35%** | ±0.33% |
+| dinov2_only | 97.21% | ±0.85% |
+
+Gap: 1.15 points, exceeding the ~0.59-point average per-seed noise —
+full_fusion won every one of the 6 seeds. Full tables, per-seed numbers,
+and interpretation: `results/full_fusion_dinov2_videomae_openclip.md`.
+
+**Interpretation — this changes the architecture story, not just the
+number:** the 2026-09-27 conclusion ("fusion doesn't reliably help over
+DINOv2 alone") was specifically about a fusion that included two
+dead-weight branches (LK, RF-DETR, both at the trivial baseline). Swap
+those for a second strong backbone (OpenCLIP) instead of padding with
+non-contributing branches, and fusion *does* reliably help — a
+genuinely different, more encouraging result than "one model does
+everything."
+
+**Caveats (read together, not separately):**
+1. **The LK rewrite (fix 1 from 2026-10-05) is incomplete, not
+   abandoned.** The re-extraction run was paused at 237/2831 clips to
+   prioritize OpenCLIP (interrupting Colab for GPU-queue reasons);
+   the partial file was renamed `_incomplete_lk_rfdetr.csv` on Drive so
+   it wouldn't get silently merged into other ablation runs. It can be
+   resumed later by renaming it back to `features_lk_rfdetr.csv` and
+   re-running `feature_extraction_fusion.ipynb` with
+   `BRANCHES = {'lk', 'rfdetr'}` — the resumability logic will pick up
+   from clip 238 onward. Whether the LK fix actually gets `lk_only` off
+   its 82.89%/0% riot-recall floor is **still an open, unanswered
+   question** — nothing in this entry resolves it.
+2. **Only the 2-group comparison (`dinov2_only` vs. this `full_fusion`)
+   was multi-seed confirmed.** Whether `openclip_only` or
+   `dinov2_openclip` individually beat `dinov2_only` robustly, or
+   whether VideoMAE's presence in the winning combination is doing real
+   work vs. just along for the ride (it's the weakest branch alone,
+   93.8%), is not yet checked.
+3. **This result is still not comparable to published XD-Violence
+   benchmarks**, now with real numbers behind that caveat (previously
+   stated in `docs/roadmap.md`, 2026-09-26, without specifics). Verified
+   via the actual comparison table in a 2023 paper plus cross-checking
+   other recent work: published SOTA is ~85-87% **frame-level Average
+   Precision**, measuring all 6 XD-Violence violence classes lumped as
+   one "abnormal" label against Normal, evaluated on the **800 official
+   full untrimmed test videos**, trained **weakly-supervised** (only
+   video-level labels). This project measures **clip-level accuracy**,
+   **Riot only** vs. **pure Normal**, on **pre-trimmed clips**, with
+   **direct clip-level supervision** — a narrower, materially easier
+   sub-problem. The 98.35% here is not "beating" published ~87% AP; it's
+   a strong result on a different, easier task. Matching the published
+   protocol (frame-level, 6-class-lumped, untrimmed, weakly-supervised)
+   would be substantially more work than anything built so far.
+
+**Status:** Not superseded. First confirmed (multi-seed-validated)
+evidence in this project that fusion of two strong backbones beats a
+single strong backbone — contrast directly with the 2026-09-27 entries,
+where fusion-with-dead-weight-branches did not.
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

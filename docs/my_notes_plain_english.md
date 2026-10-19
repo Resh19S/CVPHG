@@ -184,6 +184,33 @@ run got paused partway through (about 1 in 12 clips done) to prioritize
 testing OpenCLIP first — so we still don't know if that fix actually
 worked. That's the next thing to pick back up.
 
+### Test 8 — finished the motion/counting fix, and ran a real "how do we compare" check
+
+**First, closing the loop on the fix from Test 7:** we finished
+re-running the motion-tracking and people-counting ingredients with the
+bug fixes applied. Honest result: it barely moved the needle. Those two
+ingredients still catch almost no riot clips (went from catching
+literally zero to catching about 4 out of 97) — nowhere near the "get
+them to 90%" goal. Worth saying plainly: combining them together
+actually got *worse* at the real job (catching riots) even though the
+overall accuracy number went up slightly, because the model became more
+cautious about guessing "riot" at all. We're not going to keep
+tweaking this specific approach — the next real fix would be a more
+fundamentally different technique, not another small patch.
+
+**Second, and bigger: we got a real "how do we compare to published
+research" number, not just a guess.** We looked up what other researchers
+have published on this exact dataset (85-87% using their metric), then
+built an evaluation that uses the dataset's actual official test files
+and computes that same metric ourselves. Result: **85.45%** — landing
+right in the middle of what's been published elsewhere. That's a
+genuinely comparable number now, on the metric and test files that
+matter, though it's still a narrower slice of the full problem (we only
+detect riots specifically; published work detects six different violence
+types at once). Good, honest news: we can now say "this is in the same
+range as published results" and mean it, with one sentence of context
+attached every time.
+
 ### What's still missing
 
 - XD-Violence request status update: the riot class (485 clips) and a

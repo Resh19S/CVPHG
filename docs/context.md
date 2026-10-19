@@ -158,14 +158,37 @@ of the same one:**
   video-level "contains an anomaly somewhere" label). This project
   trains on direct, already-correct clip-level labels.
 
-**What would be needed to produce a genuinely comparable number:**
-reframe as frame-level anomaly localization over the official untrimmed
-test set, with all 6 classes lumped as "abnormal," trained weakly-
-supervised — a substantially larger undertaking than the current
-clip-level binary classifier. Not started, not currently planned unless
-explicitly requested.
+**Update 2026-10-19 — 2 of these 3 gaps are now closed.** Per
+`docs/findings.md` (2026-10-19 entry), `notebooks/apples_to_apples_eval.ipynb`
+now: (1) uses XD-Violence's real official train/test split, not a random
+resample, and (2) computes real frame-level Average Precision against the
+dataset's own `annotations.txt` ground truth — same metric, same official
+test files as published work. Result: **85.45% frame-level AP**, landing
+inside the cluster of current published methods (VadCLIP 84.51%, TCVADS
+85.58%, ReFLIP 85.81%, DSANet 86.95%).
 
-**How to talk about current results until/unless that's built:** as "a
-strong result on a well-defined, narrower sub-problem" (Riot vs. Normal,
-pre-trimmed, directly supervised) — never as "beats published SOTA,"
-since the tasks aren't the same thing.
+**What's still NOT closed:** this remains Riot-only vs. Normal, not all 6
+XD-Violence violence classes lumped as "abnormal" (the published task),
+and uses a flat per-clip broadcast score rather than genuine temporal
+localization within a video. The flat-broadcast approach lands close to
+published numbers specifically because this project's clips are already
+pre-trimmed to the event (~17% of test frames are anomalous, concentrated
+in the riot clips) — a structural fact about the narrower task, not
+evidence of real localization ability. See `results/
+apples_to_apples_frame_level_ap.md` for the full explanation.
+
+**What would be needed to close the remaining gap:** pull the other 5
+anomaly classes, lump them with Riot as one "abnormal" label vs. Normal,
+and train weakly-supervised (video-level labels only, MIL-style) instead
+of direct clip-level supervision — a genuinely different training setup,
+not a tweak. Not started, not currently planned unless explicitly
+requested.
+
+**How to talk about current results:** the clip-level accuracy numbers
+(97-98%) are still "a strong result on a well-defined, narrower
+sub-problem" — never "beats published SOTA." The frame-level AP number
+(85.45%) is different: it's a genuine, same-metric, same-test-set
+comparison, so it's fair to say it "lands in the same range as published
+methods" — but always with the attached sentence that it's riot-only,
+not all 6 classes, and uses flat-broadcast rather than true localization.
+Never drop that sentence when either number comes up.

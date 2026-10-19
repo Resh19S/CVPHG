@@ -481,6 +481,116 @@ where fusion-with-dead-weight-branches did not.
 
 ---
 
+## 2026-10-09 — [REAL RESULT] LK rewrite completed — marginal improvement only, target not met
+
+**What this answers:** the 2026-10-05 LK branch rewrite (resize fix +
+3-window pooling, see the 2026-10-08 entry above for status) finished
+re-extracting all 2831 clips. This entry reports what it actually changed.
+
+**Result — full 5-branch ablation (single 80/20 split, all branches now
+complete: LK-fixed, RF-DETR, DINOv2, VideoMAE, OpenCLIP):**
+
+| branch group | accuracy before fix | accuracy after fix | riot recall before | riot recall after |
+|---|---|---|---|---|
+| lk_only | 82.89% | 83.25% | 0.0% | 4.1% (4/97) |
+| rfdetr_only | 82.89% | 82.89% (unchanged, untouched) | 0.0% | 0.0% |
+| lk_rfdetr | 82.72% | 83.77% | 11.3% | 7.2% (7/97) |
+
+Full fusion with all 5 branches: 98.24% accuracy (riot precision=recall=
+0.948) — statistically indistinguishable from the 3-branch
+DINOv2+VideoMAE+OpenCLIP fusion from the entry above (98.24% vs. 98.35%,
+well within the known ~0.3-0.85pp noise band), confirming LK/RF-DETR
+still add essentially nothing to the fusion either way.
+
+**Verdict: the fix helped marginally, but did not come close to the
+~90% target raised when this was requested.** Riot recall for `lk_only`
+moved from literally 0% to 4.1% — still catching almost no riot clips.
+Worth stating plainly, not softened: **`lk_rfdetr` combined got *worse*
+at the actual job (catching riots) despite higher raw accuracy** —
+precision rose (0.478→0.778) while recall fell (11.3%→7.2%), net F1
+0.183→0.131. Accuracy alone was misleading here; it went up because the
+model got more conservative (guesses "riot" less often, slightly more
+correct when it does), not because it got better at finding riots.
+
+**Interpretation:** the resize and multi-window fixes were real, verified
+bug fixes (worth having done regardless), but the underlying problem
+wasn't primarily about those two bugs — sparse LK summary stats and
+sparse RF-DETR counts, even cleaned up, still carry very little
+riot-discriminating signal at this scale. Closing the gap to ~90% would
+need a more invasive change (feeding the per-frame-pair sequence to a
+small sequence model instead of collapsing to mean/max, or dense
+Farneback flow instead of sparse LK) — not yet attempted.
+
+**Status:** Not superseded. Confirms the dead-weight finding from the
+2026-09-27 entries is not fully explained by the resize/window bugs —
+those were real but not the dominant cause.
+
+---
+
+## 2026-10-19 — [REAL RESULT] First apples-to-apples result: official split + frame-level AP = 85.45%
+
+**What this closes, per the plan to prioritize comparability:** two of
+the three gaps flagged in `docs/context.md`'s "Published XD-Violence
+benchmarks vs. this project's task" section. Built and run in
+`notebooks/apples_to_apples_eval.ipynb`.
+
+**Setup:** trained on XD-Violence's **official train split** (not a
+random resample — the `split` column had been present in the data all
+along but ignored by every prior entry in this log). Predicted
+riot-probability for all 401 official test clips (101 riot, 300 normal).
+Pulled real frame-level ground truth directly from the dataset's own
+`annotations.txt`. Computed frame-level Average Precision (the actual
+metric published papers use) via a flat per-clip broadcast score (every
+frame of a clip gets that clip's single predicted probability — no true
+temporal localization attempted).
+
+**Result: 85.45% frame-level AP.** Lands inside the cluster of current
+published methods: VadCLIP 84.51%, TCVADS 85.58%, ReFLIP 85.81%, DSANet
+86.95% (sources: `docs/context.md`, 2026-10-08 entry). Full table and
+discussion: `results/apples_to_apples_frame_level_ap.md`.
+
+**Data quality note:** 100/101 riot test clips matched an annotation
+entry; 1 (`v=aWPWHU8x6kE__#1_label_B4-0-0.mp4`) had no match and was
+scored fully negative for its whole duration — a conservative error that
+understates this AP slightly, not one that inflates it.
+
+**Why this landed this close despite the flat-broadcast simplification —
+a structural fact about the task as scoped, not evidence of true
+localization ability:** published methods must find a violent moment
+within long, untrimmed movies, where it may be a small fraction of the
+runtime — flat broadcasting would badly hurt AP there. This project's
+clips are already pre-trimmed to the event: 271,322 of 1,601,767 test
+frames (~17%) are marked anomalous, concentrated in the 101 riot clips,
+meaning each riot clip's anomalous interval already covers a large share
+of its own duration. Broadcasting one score per clip loses much less
+information in this setting than on full-length source movies.
+
+**Caveat (must be read together, not separately — full version in the
+results file):**
+1. **Still Riot-only vs. Normal, not all 6 XD-Violence classes lumped as
+   "abnormal."** The published numbers above are for detecting any of 6
+   violence types; this is one type only. This is the one comparability
+   gap NOT closed by this entry.
+2. **Not weakly-supervised** — trained on direct clip-level labels, not
+   the video-level-only MIL paradigm published methods use.
+3. **No genuine temporal localization** — see the structural explanation
+   above; this number does not demonstrate the model can find *where*
+   within a video an anomaly occurs, only that it can rank whole clips
+   correctly.
+4. **How to state this out loud, every time:** "a real AP score, computed
+   the same way published papers compute theirs, on the same official
+   test files — on a narrower class scope, without temporal
+   localization." Never "beats" or flatly "matches" published SOTA
+   without that sentence attached.
+
+**Status:** Not superseded. First result in this project computed on a
+genuinely shared metric, official test set, and ground-truth source with
+published work — closes 2 of 3 comparability gaps identified in
+`docs/context.md` (2026-10-08). The remaining gap (all-6-classes-lumped,
+weakly-supervised) is a separate, larger undertaking, not started.
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

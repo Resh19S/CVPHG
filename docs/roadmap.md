@@ -133,20 +133,39 @@ numbers: `docs/findings.md` (two 2026-09-27 entries, read together),
    and OpenCLIP were asked to be made ready. Revisit RF-DETR's own
    sparse-sampling blind-spot separately if/when asked.
 
-**Immediate next steps, not yet run:**
-1. **Resume the paused LK/RF-DETR re-extraction** (see item 1 above) —
-   still the only way to answer whether the LK fix worked.
+**DONE 2026-10-09 — LK/RF-DETR re-extraction completed.** Verdict:
+marginal improvement only, target (~90%) not met. `lk_only` riot recall
+moved 0%→4.1%; `lk_rfdetr` combined actually got *worse* at catching
+riots despite higher raw accuracy (F1 0.183→0.131 — accuracy alone was
+misleading). Full numbers: `docs/findings.md` (2026-10-09 entry). These
+two branches remain not worth their complexity as currently engineered;
+closing the gap would need sequence modeling or dense flow, not more
+tweaking of the current encoding — not attempted.
+
+**DONE 2026-10-19 — comparability to published benchmarks, priority #1
+per Hith's reordering.** `notebooks/apples_to_apples_eval.ipynb` closes 2
+of 3 gaps: real official train/test split (not a resample) + real
+frame-level AP against official ground truth. **Result: 85.45% AP**,
+inside the published cluster (VadCLIP 84.51%–DSANet 86.95%). Remaining
+gap (all 6 classes lumped, weakly-supervised) is a separate, larger
+build — not started, not currently planned unless requested. Full
+numbers: `docs/findings.md` (2026-10-19 entry), `results/
+apples_to_apples_frame_level_ap.md`.
+
+**Immediate next steps, not yet run — priority #2 per Hith's reordering:**
+1. **Sequence modeling or dense flow for LK/RF-DETR**, now that
+   incremental fixes are confirmed insufficient — feed per-frame-pair
+   values to a small GRU/1D-CNN instead of collapsing to mean/max, or
+   try dense Farneback flow instead of sparse LK.
 2. **Isolate which part of the OpenCLIP win matters**: multi-seed check
    was only run for `dinov2_only` vs. the 3-way `full_fusion` — not yet
    confirmed whether `openclip_only` or `dinov2_openclip` (2-way) alone
    are robust improvements, or whether VideoMAE's presence in the
    winning combo is doing real work (it's the weakest branch alone,
    93.8%) vs. just coming along for the ride.
-3. **Comparability to published benchmarks remains unresolved** — now
-   quantified (`docs/context.md`, 2026-10-08): published SOTA is ~87%
-   frame-level AP on a materially different, harder task (all 6 classes
-   lumped, untrimmed video, weakly-supervised). Matching that protocol
-   is a substantially bigger build, not started.
+3. **Full published-protocol match** (all 6 classes lumped,
+   weakly-supervised MIL training) remains the only way to close the
+   last comparability gap — substantially bigger build, not started.
 
 **Deferred, lower priority:**
 - **RF-DETR → YOLO swap** (mechanical): moot while RF-DETR's branch

@@ -38,6 +38,57 @@ All current scaffolding is structured (config-driven class list in
 without refactoring extraction, classification, or evaluation code — but it
 has **not** been added yet, by design.
 
+## Major pivot 2026-11-09 — PI review: architecture not novel, reframe to escalation prediction
+
+Geetanjali reviewed the fusion-architecture work (98.35% clip-level
+accuracy, 85.45% apples-to-apples frame-level AP, both logged in
+`docs/findings.md`) and gave two notes: (1) the architecture itself is
+not novel/publishable — frozen-backbone feature fusion is already
+published on this exact dataset (VadCLIP, AnomalyCLIP, CLIP-TSA all do
+this on XD-Violence); (2) she wants a live color-coded risk indicator
+(green/normal, amber/building, red/happening) as a video plays.
+
+**Key realization (not hers, ours, worth remembering):** these two notes
+are the same problem, not two separate ones. The current architecture
+classifies a whole pre-trimmed clip with a single label — it has no
+notion of *time*, which is both why it reads as a commodity re-skin of
+published methods and why it can't naturally produce a live-updating
+indicator. The fix for "not novel" and the fix for "I want a gradient"
+are the same fix: model risk as it evolves across a video instead of
+once per clip.
+
+**New direction, confirmed via research before committing (see
+`docs/roadmap.md`'s 2026-11-09 entry for full citations):** reframe as
+**ordinal escalation-stage prediction over sliding time-windows**
+(Normal -> Escalating -> Critical per window, not one label per clip),
+trained weakly-supervised (MIL, video-level labels only — XD-Violence's
+official training split has no frame-level labels, only the 101
+official test-split riot clips do, via `annotations.txt`), evaluated with
+a **lead-time / earliness metric** adapted from the early time-series
+classification and action-anticipation literature (Minimum Observation
+Ratio; harmonic-mean(accuracy, 1-earliness)) against those real
+annotated onsets. A CVPR 2023 paper explicitly names "XD-Violence and
+UCF-Crime are not designed for anticipation" as an open problem — this
+combination (ordinal staging + crowd-scale riot specifically + XD-Violence
++ formal earliness metric) does not appear to already exist. Full
+verdict and the near-miss prior art checked against: `docs/roadmap.md`.
+
+**This does not discard the fusion work** — DINOv2 and OpenCLIP (the two
+branches confirmed to carry real signal) carry over as the per-window
+feature extractors. What's replaced is the task formulation (whole-clip
+binary label -> per-window ordinal trajectory) and the training paradigm
+(direct supervision -> weakly-supervised MIL, since per-window labels
+don't exist for the training set). LK, RF-DETR, and VideoMAE are not
+carried into this pipeline, consistent with the ablation findings.
+
+**Known methodological risk to guard against, not just note:** a 2026
+preprint ("Pre-Event Separability in Weakly-Supervised Violence
+Detection") found that 39-91% of apparent pre-event separability on
+XD-Violence/UCF-Crime survives from non-content source artifacts
+(editorial title cards, platform watermarks) rather than genuine early
+signal. Any claimed early-detection result from this pipeline needs the
+same kind of pre-onset-artifact check before being trusted.
+
 ## XD-Violence status
 
 **Status as of 2026-09-18: riot (B4) class obtained. Normal/negative class

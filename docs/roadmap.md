@@ -9,7 +9,84 @@ done here.*
 
 ---
 
-## Up next — supervised fusion pipeline (decided 2026-09-19)
+## Up next — escalation-stage prediction pivot (decided 2026-11-09, current top priority)
+
+**Why:** PI review of the fusion-architecture work said the architecture
+itself isn't novel (frozen-backbone fusion is already published on XD-
+Violence — see below) and asked for a live color-coded risk indicator.
+Full reasoning and scope: `docs/context.md`, "Major pivot 2026-11-09."
+This section is the research grounding and build plan; everything in the
+"supervised fusion pipeline" section below this one is now background —
+its confirmed findings (DINOv2/OpenCLIP strong, LK/RF-DETR not
+contributing) carry forward into this pivot, but the clip-level
+classification task itself is no longer the active target.
+
+**Prior art checked before committing (verified directly, not assumed):**
+- **Architecture-level fusion is not novel** — VadCLIP (AAAI 2024,
+  84.51% AP on XD-Violence), AnomalyCLIP, and CLIP-TSA all use frozen
+  CLIP-family embeddings for exactly this dataset/task already (see
+  `docs/context.md`, 2026-10-08 entry for the full benchmark table).
+- **Closest near-miss checked and ruled distinct:** a 2026 IJACSA paper
+  ("Predicting Crowd Agitation from Raw Video") fuses frozen CLIP +
+  Farneback optical flow into a continuous regressed risk score,
+  thresholded — architecturally close to what was first considered. It
+  trains on RLVS/RWF-2000/HockeyFight (small-scale one-on-one fight
+  datasets, not crowd-scale riots) with labels its own limitations
+  section calls "constructed," flagging subjectivity concerns. Not a
+  per-window ordinal trajectory, no formal earliness metric, not
+  crowd-scale.
+- **Explicit confirmation the gap is real:** a CVPR 2023 paper (NWPU
+  Campus benchmark) states directly that "weakly-supervised datasets
+  such as UCF-Crime and XD-Violence are not designed for anticipation"
+  — naming this exact limitation as their own motivation for building a
+  different dataset.
+- **Closest "lead-time on a real benchmark" hit:** "Latent Clarity"
+  (2026 preprint) builds an actual lead-time protocol (offset windows
+  0-5s before annotated onset) — but on **UCF-Crime**, not XD-Violence,
+  and for general anomaly anticipation, not escalation staging or
+  crowd/riot specifically.
+- **Closest "XD-Violence + pre-event" hit, and a real risk to design
+  around:** "Pre-Event Separability in Weakly-Supervised Violence
+  Detection" (2026 preprint, uses XD-Violence) is a diagnostic, not a
+  model — it found 39-91% of apparent pre-event separability on XD-
+  Violence/UCF-Crime comes from non-content source artifacts (editorial
+  title cards, platform watermarks), not genuine early signal. This is a
+  real methodological risk for this pivot specifically and needs an
+  explicit sanity check before any early-detection claim is trusted, not
+  just a caveat after the fact.
+- **Formal earliness metrics exist and should be adapted, not invented:**
+  Minimum Observation Ratio (Furnari & Farinella, first-person action
+  anticipation — the smallest observation fraction at which a correct
+  prediction is first made) and Harmonic-Mean(Accuracy, 1-Earliness)
+  from the early time-series classification literature (TEASER/
+  MultiETSC lineage). Both transplant cleanly onto "how many seconds
+  before the true onset did the model first flag Escalating."
+- **Verdict:** the specific combination — ordinal 3-tier escalation
+  staging, crowd-scale riot footage specifically, XD-Violence, a formal
+  earliness metric — does not appear to already exist. Legitimate gap,
+  not a rediscovery risk like the fusion-architecture question was.
+
+**Build plan:**
+1. **DONE 2026-11-09:** `notebooks/sliding_window_feature_extraction.ipynb`
+   — per-clip window sequences (DINOv2 + OpenCLIP only, 2s windows/1s
+   stride) instead of one pooled vector per clip. Not yet run.
+2. **Not yet built:** MIL weakly-supervised trainer. The official train
+   split has no frame-level labels — only the 101 annotated test-split
+   riot clips do — so training needs bag-level (video-level-label-only)
+   supervision, not per-window supervision.
+3. **Not yet built:** ordinal 3-tier sequence model (small GRU/attention)
+   over each clip's window sequence.
+4. **Not yet built:** lead-time/MOR-style evaluation against the real
+   annotated test-split onsets, plus the pre-event-artifact sanity check
+   from the "Pre-Event Separability" finding above — do this before
+   trusting any early-detection number, not after.
+5. **Not yet built, but expected to be close to free once (3) exists:**
+   the green/amber/red visualization Geetanjali asked for — it's a
+   rendering of (3)'s per-window output on a timeline, not separate work.
+
+---
+
+## Background — supervised fusion pipeline (decided 2026-09-19, superseded as the active target by the 2026-11-09 pivot above)
 
 **Scope change, confirmed with the user 2026-09-19:** this project now has
 a second, explicitly supervised track alongside the original zero-shot CLIP

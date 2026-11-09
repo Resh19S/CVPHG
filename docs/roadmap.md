@@ -66,23 +66,96 @@ classification task itself is no longer the active target.
   earliness metric — does not appear to already exist. Legitimate gap,
   not a rediscovery risk like the fusion-architecture question was.
 
+**Reused components are not the novel contribution — flagged directly by
+the user 2026-11-09, correctly.** DINOv2/OpenCLIP (reused), a generic
+sequence model, and a generic MIL ranking loss applied to a new task is
+still "a combination," not an architecture — the same critique Geetanjali
+already gave once. Two specific, designed mechanisms (not generic
+components) are what would make this defensible as actually novel, both
+motivated by real, cited problems rather than invented for the occasion:
+1. **An ordinal-constrained temporal head** — existing MIL-VAD models
+   (RTFM, VadCLIP, etc.) score each snippet independently with no
+   structural notion that risk should escalate monotonically. Building
+   that constraint into the architecture (e.g. penalizing backward jumps
+   from Critical to Normal mid-escalation) is a structural difference
+   from how every published method in this space works.
+2. **A source-artifact-invariance mechanism** — see the deep-research
+   update directly below; this one is no longer optional.
+
+**Sequencing decision, confirmed with the user 2026-11-09 — build the
+plain version first, as an internal baseline, before investing in either
+novel mechanism above.** Reasoning: if there's no exploitable escalation
+signal in the data at all, no architectural cleverness saves it, and
+that's cheaper to learn early. If the baseline does find signal, that's
+when committing to (1) and/or (2) turns from a bet into the thing that
+makes this publishable. **Do not present the plain baseline to Geetanjali
+as the novel architecture** — it answers "is there something here," not
+"what's new."
+
+**Deep-research pass completed 2026-11-09 (full report: chat, not yet
+filed as a doc — ask if a standalone copy is wanted). Verdict unchanged
+and more confident under a much deeper search, but two things changed
+the plan:**
+- **Checked directly and ruled out:** "Can We Anticipate Violence?"
+  (Penchala et al., arXiv 2609.40014) is real, uses XD-Violence, but is
+  binary (Normal/Risky, no stages), reports no lead-time metric, and its
+  features (facial region + body-motion keypoints) target
+  individual/interpersonal risk, not crowd-scale. Does not overlap this
+  project's gap.
+- **The source-artifact confound is confirmed severe specifically on
+  XD-Violence, not just a general risk — this elevates mechanism (2)
+  above from optional to required.** The Pre-Event Separability paper's
+  full numbers: on XD-Violence, even after length-matching normal
+  controls, **70% of apparent pre-event separability survives** (down
+  from 98% uncontrolled, still far above chance). A naive version of
+  this pipeline would plausibly look like it detects early escalation
+  while actually reading title cards and watermarks. Their length-matched
+  control protocol needs to be run as a required validation step before
+  trusting any early-detection result, not an optional sanity check.
+- **Better lead-time metric identified than the MOR/harmonic-mean
+  framework first proposed:** Achenchabe et al.'s cost-based ETSC
+  criterion (`arXiv 2005.09945`) is the only verified early-classification
+  metric that natively lets a missed/late critical alarm cost more than
+  a premature one — the right asymmetry for riot warning (a false alarm
+  is a nuisance; a missed riot is the actual failure mode). The deep
+  research sketches a direct 3-tier ordinal extension of it (its
+  "Proposal C") — adopt and cite that instead of inventing a metric from
+  scratch.
+- **Closest real neighbors, worth citing as related work, not a
+  redirect:** AssistPDA (`arXiv 2503.21904`) pairs anticipation with
+  XD-Violence and reports a lead-time number (Average Advance Time,
+  29.19s) — but event-level, not crowd-specific, timestamps from a
+  third-party annotation set, no formula given. RiskCueBench
+  (`arXiv 2601.03369`) annotates a pre-incident risk cue specifically on
+  protest footage (484 videos) — closest in spirit, but binary, not
+  XD-Violence-based, and the paper's own numbers are internally
+  inconsistent per the research notes.
+- **Expectation-setting, not a blocker:** XD-Violence's original paper
+  reports Riot as its own **weakest class** (70.54 AP RGB-only, 76.42
+  with audio) among all 6 violence categories. This is a genuinely hard
+  subproblem on its own terms, not an easy class picked for a demo.
+
 **Build plan:**
 1. **DONE 2026-11-09:** `notebooks/sliding_window_feature_extraction.ipynb`
    — per-clip window sequences (DINOv2 + OpenCLIP only, 2s windows/1s
    stride) instead of one pooled vector per clip. Not yet run.
-2. **Not yet built:** MIL weakly-supervised trainer. The official train
-   split has no frame-level labels — only the 101 annotated test-split
-   riot clips do — so training needs bag-level (video-level-label-only)
-   supervision, not per-window supervision.
-3. **Not yet built:** ordinal 3-tier sequence model (small GRU/attention)
-   over each clip's window sequence.
-4. **Not yet built:** lead-time/MOR-style evaluation against the real
-   annotated test-split onsets, plus the pre-event-artifact sanity check
-   from the "Pre-Event Separability" finding above — do this before
-   trusting any early-detection number, not after.
-5. **Not yet built, but expected to be close to free once (3) exists:**
-   the green/amber/red visualization Geetanjali asked for — it's a
-   rendering of (3)'s per-window output on a timeline, not separate work.
+2. **Not yet built — plain baseline, per the sequencing decision above:**
+   MIL weakly-supervised trainer (generic ranking loss, no ordinal
+   constraint yet) + generic sequence model (GRU) + a first-pass
+   evaluation. The official train split has no frame-level labels — only
+   the 101 annotated test-split riot clips do — so training needs
+   bag-level (video-level-label-only) supervision, not per-window
+   supervision. Purpose: confirm exploitable escalation signal exists
+   before investing in either novel mechanism.
+3. **Not yet built — only after (2) finds signal:** the ordinal-
+   constrained temporal head and the source-artifact-invariance
+   mechanism (the two components that would make this architecturally
+   novel, not just a combination) — plus the Achenchabe-style ordinal
+   cost lead-time metric and the Ganesh-style length-matched confound
+   check, replacing the plain MOR-based evaluation from (2).
+4. **Not yet built, expected to be close to free once (3) exists:** the
+   green/amber/red visualization Geetanjali asked for — it's a rendering
+   of (3)'s per-window output on a timeline, not separate work.
 
 ---
 

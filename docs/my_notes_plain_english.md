@@ -211,6 +211,69 @@ types at once). Good, honest news: we can now say "this is in the same
 range as published results" and mean it, with one sentence of context
 attached every time.
 
+### Where things changed direction (November 2026)
+
+Geetanjali ma'am reviewed the work above and said two things: the design
+is good but it isn't new (other groups have already published "combine
+big pretrained AI models and classify"), and she wants a live
+green / amber / red risk light while a video plays. Those are really one
+request: stop giving one verdict per clip, start tracking how risk
+*changes* through a video.
+
+### Test 9 — the new design is built, checked on fake data, not yet run on real footage
+
+**What it does, in one breath:** the video is looked at once per second.
+At every second the system says green (normal), amber (building up) or
+red (riot happening), using only what it has seen so far.
+
+**The two parts that are ours, not borrowed:**
+
+1. **A stage tracker with rules.** It keeps a running belief over the
+   three stages and is built so it *cannot* jump from green straight to
+   red — it has to pass through amber. And amber is given a precise job:
+   "I expect red within the next 10 seconds." It learns that by itself,
+   from videos that are only labelled "contains a riot" or "doesn't" —
+   nobody marked the build-up moments.
+2. **An amber light that ignores what the video looks like.** A known
+   trap on this dataset: a system can look like it predicts riots early
+   when it is really just recognising a news channel's logo or
+   watermark. So the amber signal is only allowed to look at how the
+   current second *differs from the earlier part of the same video*. A
+   logo that is there the whole time cancels out. It can react to
+   change, not to appearance.
+
+The two big pretrained models (DINOv2, OpenCLIP) are still the "eyes".
+That part is reused and is not what we are claiming is new.
+
+**Two things we found out about the data while building it — both
+matter for what we can claim:**
+
+- **Most riot clips start mid-riot.** Of the 101 test riot clips that
+  have frame-by-frame markings, 59 are a riot from the very first frame.
+  Only 25 have more than five seconds of calm before it starts. So
+  "how early do we warn?" can only be measured on those 25 clips. That
+  is a small number — one clip moves the score by four points.
+- **Riot clips are almost all YouTube; calm clips are half movies.** So
+  "this looks like a film" is nearly a free hint that it isn't a riot.
+  We now measure how much the system leans on that.
+
+**What has actually been tested:** the code, on made-up clips where we
+planted a build-up signal and a fake watermark ourselves. It did what it
+should — raised amber before the planted riots, ignored the planted
+watermark. **That only proves the code works. It says nothing yet about
+real footage.**
+
+**What we still do not know:** whether real riots in this dataset have
+any visible build-up at all. If the footage before a riot is just a
+studio presenter and then a hard cut to the street, no design can warn
+early. The plain "no clever parts" version runs side by side in the same
+test, so we will see directly whether each new part earns its place.
+
+**How to say it out loud:** "The new architecture is built and its code
+is verified. The real-data run is next. We have a fair test set up, and
+we already know the early-warning part can only be judged on about 25
+clips."
+
 ### What's still missing
 
 - XD-Violence request status update: the riot class (485 clips) and a
@@ -227,14 +290,14 @@ attached every time.
 
 ### Next things to actually do
 
-1. **Finish the paused fix-attempt on the two underperforming
-   ingredients** (motion-tracking, people-counting) — only ~8% done
-   before we paused it to test OpenCLIP instead. Still don't know if the
-   fix worked.
-2. Double-check whether OpenCLIP specifically (not just the 3-ingredient
-   combo) is a real improvement on its own, and whether the video model
-   is pulling its weight in the winning combination or just along for
-   the ride.
-3. Fix the wording we gave the zero-shot model for "fighting" (it's
-   currently winning by default too often) and re-run the same real-footage
-   test to see if the overall score goes up once that's corrected.
+*(Updated 2026-11-16 — the older list here was about the previous
+design and is finished or set aside.)*
+
+1. Finish preparing the per-second features for the remaining clips
+   (all the calm test clips, plus enough calm training clips).
+2. Run the new green/amber/red model on the real footage and read the
+   side-by-side table: plain version vs. each new part.
+3. Only then decide what we can claim, and write it down with the
+   "25 clips" caveat attached.
+4. Still open from long ago, not urgent: the zero-shot model's
+   "fighting" wording problem was never fixed.

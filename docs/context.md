@@ -89,6 +89,25 @@ XD-Violence/UCF-Crime survives from non-content source artifacts
 signal. Any claimed early-detection result from this pipeline needs the
 same kind of pre-onset-artifact check before being trusted.
 
+**Update 2026-11-16 — architecture built; plan changed in two ways.**
+1. *Sequencing:* the user chose to build the novel architecture directly
+   instead of a plain baseline first (window extraction was too slow to
+   spend a round-trip on a baseline alone). The baseline survives as one
+   arm of the same notebook, so the control is not lost.
+2. *Mechanism 2 changed form:* from an adversarial regulariser to a
+   structural one — escalation evidence is computed only from how a
+   window differs from the running mean of its own clip, so anything
+   constant across a clip cancels by construction. Reason and limits:
+   `docs/roadmap.md`, "Architecture as built 2026-11-16".
+
+The model (`notebooks/escalation_stage_model.ipynb`) is **built and
+tested on synthetic data only**. No real-data result exists yet. Two
+dataset facts found while designing it shape how any result must be
+reported (`docs/findings.md`, 2026-11-16): only 25 of the 101 annotated
+riot test clips have more than 5 s of calm footage before the riot
+(59 start mid-riot), and riot clips are 95% YouTube while normal clips
+are about half movies.
+
 ## XD-Violence status
 
 **Status as of 2026-09-18: riot (B4) class obtained. Normal/negative class

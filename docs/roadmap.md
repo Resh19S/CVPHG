@@ -135,27 +135,135 @@ the plan:**
   with audio) among all 6 violence categories. This is a genuinely hard
   subproblem on its own terms, not an easy class picked for a demo.
 
+**Sequencing changed by the user 2026-11-16 — build the novel
+architecture now, not baseline-first.** Reason: window extraction was
+running at ~22 s per clip (~800 of 2,831 clips after ~5 hours), and the
+user did not want to spend another round-trip on a plain baseline before
+seeing the real thing. What keeps this honest: the plain baseline was not
+dropped, it became one **arm** of the same notebook (same data, same
+seeds), so the "is there signal at all" question and the "does each
+mechanism add anything" question are answered by the same run. The rule
+from the 2026-11-09 decision still stands — the baseline arm is never
+presented as the architecture.
+
+**Architecture as built 2026-11-16
+(`notebooks/escalation_stage_model.ipynb`). Built and tested on synthetic
+data only — NOT yet run on real features; no result exists yet.**
+
+Input: per-window DINOv2 + OpenCLIP embeddings (each L2-normalised,
+concatenated, 1536-d), one window per second. Everything is causal (a
+window's output uses only earlier windows), which a live indicator
+requires and which keeps the lead-time evaluation honest.
+
+1. **Ordinal stage filter (mechanism 1).**
+   - Two evidence signals per window: *Critical evidence* ρ (causal GRU
+     over absolute content) and *Escalation evidence* ε (a second causal
+     GRU, see mechanism 2).
+   - Rank-consistent ordinal emissions: P(Critical)=ρ,
+     P(Escalating)=(1−ρ)ε, P(Normal)=(1−ρ)(1−ε).
+   - Those go through the **forward filter of a 3-state HMM with a banded
+     transition matrix** — Normal↔Escalating↔Critical only, so a clip
+     cannot jump Normal→Critical without passing through Escalating. The
+     filtered posterior is the green/amber/red output. Initial-state
+     distribution is learned, because most riot clips start mid-riot (see
+     the finding below).
+   - Trained from video-level labels only: riot video → its top-k windows
+     must reach Critical; normal video → nothing above Normal anywhere.
+   - **Self-anticipation gives "Escalating" a testable meaning:** ε is
+     trained to predict that the model's *own* Critical stage fires within
+     `horizon_s` (10 s) — pseudo-onsets from MIL localisation, no frame
+     labels. Windows already Critical are down-weighted, so riot-from-
+     frame-0 clips do not inject an unlearnable target.
+2. **Clip-referenced escalation pathway (mechanism 2).** ε is computed
+   only from `x_t − mean(x_1..x_{t−1})` — how the current window differs
+   from the running mean of the same clip. Anything constant across a clip
+   (watermark, logo, letterbox, compression signature) cancels **by
+   construction**; the amber light cannot be triggered by what a video
+   looks like, only by how it is changing.
+3. **Optional arm — medium adversary.** Gradient-reversal discriminator on
+   the Critical pathway's per-window features, trained on normal videos
+   only, predicting movie-vs-YouTube. Motivated by a measured imbalance:
+   riot clips are 95% YouTube, normal clips ~52% (finding 2026-11-16).
+
+**Why mechanism 2 is structural rather than the adversarial regulariser
+first sketched on 2026-11-09 — a design change, stated plainly.** An
+adversary needs a set of windows *inside riot videos* that are known to
+be calm, to compare against normal videos. With video-level labels the
+only candidate is "windows the model itself calls Normal", and on this
+dataset 59 of 101 annotated riot test clips are riot from frame 0, so a
+model that paints every riot video red from the start is never
+contradicted and the adversary never engages. Clip-referencing needs no
+such anchor and gives a guarantee instead of a penalty.
+
+**Known limits of this design — do not paper over these:**
+- Mechanism 2 protects the *Escalation* evidence only. The Critical
+  pathway sees absolute content, like every published MIL detector, and
+  can still lean on static source cues. The evaluation measures that
+  ("far pre-onset" checks) rather than assuming it away.
+- Clip-referencing removes *time-constant* signatures. A source that
+  differs in its *dynamics* (e.g. news footage cuts more often than film)
+  is not cancelled.
+- If the footage before a riot is an unrelated shot (studio anchor → hard
+  cut to riot), there is no precursor to find; expect zero lead on those
+  clips regardless of architecture.
+- On the synthetic check the medium adversary *raised* the Critical
+  pathway's far-pre-onset separability (0.65 vs 0.47) — removing one
+  static cue can push a model onto another. Treat `full_adv` as an
+  experiment, not a default.
+
+**Novelty status of the two mechanisms — spot-checked 2026-11-16, three
+targeted searches, not exhaustive.** Building blocks all exist: HMMs,
+ordinal regression (Pang et al., CVPR 2020, "Self-Trained Deep Ordinal
+Regression for End-to-End Video Anomaly Detection" — ordinal regression
+as a two-class surrogate for anomaly scoring, unsupervised, no stages or
+time structure), HMMs inside weakly-supervised VAD (Sapkota & Yu, CVPR
+2022 — an HDP-HMM that *partitions* a video into scene segments before
+MIL; hidden states are scenes, not ordered severity stages),
+gradient-reversal for cross-dataset VAD generalisation, and debiasing of
+noisy MIL pseudo-labels (D²MIL, CVPR 2026). Not found: an
+ordinal-staged, banded-transition filter as the scoring head of a
+weakly-supervised detector; weak self-anticipation from the model's own
+pseudo-onsets; clip-referenced features as a source-invariance device.
+**Cite Pang et al. and Sapkota & Yu as related work and state the
+difference; do not claim "first to use an HMM/ordinal anything."**
+
+**Arms in the notebook (3 seeds each):** `baseline` (one causal GRU,
+top-k MIL) · `ordinal_abs` (mechanism 1, ε from absolute features) ·
+`full` (mechanisms 1+2) · `full_adv` (+ medium adversary).
+
+**Evaluation in the notebook (official test split; thresholds from
+validation normals only):** frame-level AP/AUC against `annotations.txt`;
+per-onset outcome — *early warning* (alarm switches on during the calm
+span, within 30 s of onset), *premature* (already on when the calm span
+began, or earlier than 30 s — an always-amber light earns nothing),
+*late*, *miss* — with median lead; an asymmetric average cost adapted
+from Achenchabe et al. (missed riot = 5× a premature/false alarm); and
+the confound check — AUC of each model's scores on calm windows *near*
+(<10 s) vs. *far* (>20 s) before onset, against normal-video windows,
+also against YouTube-only normals, plus the same numbers for a raw
+per-window linear probe.
+
 **Build plan:**
-1. **DONE 2026-11-09:** `notebooks/sliding_window_feature_extraction.ipynb`
-   — per-clip window sequences (DINOv2 + OpenCLIP only, 2s windows/1s
-   stride) instead of one pooled vector per clip. Not yet run.
-2. **Not yet built — plain baseline, per the sequencing decision above:**
-   MIL weakly-supervised trainer (generic ranking loss, no ordinal
-   constraint yet) + generic sequence model (GRU) + a first-pass
-   evaluation. The official train split has no frame-level labels — only
-   the 101 annotated test-split riot clips do — so training needs
-   bag-level (video-level-label-only) supervision, not per-window
-   supervision. Purpose: confirm exploitable escalation signal exists
-   before investing in either novel mechanism.
-3. **Not yet built — only after (2) finds signal:** the ordinal-
-   constrained temporal head and the source-artifact-invariance
-   mechanism (the two components that would make this architecturally
-   novel, not just a combination) — plus the Achenchabe-style ordinal
-   cost lead-time metric and the Ganesh-style length-matched confound
-   check, replacing the plain MOR-based evaluation from (2).
-4. **Not yet built, expected to be close to free once (3) exists:** the
-   green/amber/red visualization Geetanjali asked for — it's a rendering
-   of (3)'s per-window output on a timeline, not separate work.
+1. **DONE:** `notebooks/sliding_window_feature_extraction.ipynb`. Run
+   partially by the user (~800 clips as of 2026-11-16: all riot, a random
+   ~300 normals). Reworked 2026-11-16: batched embedding, single-pass
+   read, queue reordered (riot → all test normals → train normals capped
+   at `MAX_NORMAL_TRAIN = 600`), atomic writes. Reader/queue logic tested
+   locally against the old seek-based reader; the batched embedders have
+   **not** been run against the real models here.
+2. **BUILT 2026-11-16, not yet run on real data:**
+   `notebooks/escalation_stage_model.ipynb` — all four arms, training,
+   evaluation, timeline plot.
+3. **Next (user, Colab):** finish extraction of the test normals + the
+   capped train normals, run the model notebook, paste back the summary
+   table and the Step 1 counts.
+4. **Then:** log the real result; decide from the arm comparison which
+   mechanisms earned their place. If lead-time n (25 onsets) is too thin
+   to separate arms, the cheapest fix is more annotated onsets — the
+   other five XD-Violence violence classes' test clips have the same
+   frame-level annotations and are not yet pulled.
+5. **Not built:** the live overlay on a playing video. The static
+   green/amber/red timeline (Step 8 of the notebook) exists.
 
 ---
 

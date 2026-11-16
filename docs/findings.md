@@ -591,6 +591,120 @@ weakly-supervised) is a separate, larger undertaking, not started.
 
 ---
 
+## 2026-11-16 — [REAL RESULT] What the official annotations and file list say about riot onsets and sources (dataset facts, no model)
+
+**Why this was run:** before designing the escalation-stage model, to
+find out how much "calm before the riot" footage the evaluation set
+actually contains, and how riot and normal clips differ in where they
+come from. Computed directly from the official `annotations.txt`
+(frame intervals, 24 fps) and the HF mirror's file listing — no model,
+no features.
+
+**Riot onsets (101 riot-labelled annotated test clips):**
+
+| | clips |
+|---|---|
+| riot starts at frame 0 (no calm footage at all) | 59 |
+| onset > 0 s | 42 |
+| onset > 5 s | 25 |
+| onset > 10 s | 16 |
+| onset > 30 s | 8 |
+| onset > 60 s | 2 |
+
+- Median onset 0.0 s, mean 7.3 s, max 140.3 s. Median annotated riot
+  duration 82.3 s; in 66 of 101 clips the riot covers more than 90% of
+  the span up to its last annotated frame.
+- 34 clips have more than one annotated interval; 56 later intervals in
+  total, 45 of them preceded by a calm gap longer than 5 s. Those gaps
+  are not obviously "calm → escalation" (they may be cuts between
+  scenes), so they are reported separately, never pooled with first
+  onsets.
+
+**Sources (riot-only and pure-normal clips, both splits):**
+
+| class | split | YouTube | movie |
+|---|---|---|---|
+| riot | train | 367 | 17 |
+| riot | test | 93 | 8 |
+| normal | train | 1071 | 975 |
+| normal | test | 144 | 156 |
+
+Riot clips are 95% YouTube; normal clips are ~52% YouTube. "Looks like a
+film" is therefore close to a free "not a riot" signal — a shortcut
+available to any model trained on this pair of classes, including every
+earlier result in this log.
+
+**What this changes:**
+1. **Any lead-time claim rests on 25 clips** (16 if 10 s of calm is
+   required). One clip is 4 percentage points. State `n` with every
+   lead-time number.
+2. It explains why the flat-broadcast score did so well on 2026-10-19:
+   most riot clips are riot nearly throughout.
+3. The 2026-10-19 entry's one unmatched clip
+   (`v=aWPWHU8x6kE__#1_label_B4-0-0.mp4`) is explained: 14 entries in
+   `annotations.txt` carry a stray `.mp4` in the name, this clip among
+   them. It is the clip with the *longest* calm lead-in in the whole riot
+   test set (140 s). Name matching is fixed in
+   `escalation_stage_model.ipynb`; the 85.45% number itself has not been
+   recomputed.
+
+**Caveat:** onsets are in seconds assuming the dataset's 24 fps; clip
+durations were not available locally, so "share of the clip that is
+calm" is not computed here — only absolute seconds before onset.
+
+**Status:** Not superseded.
+
+---
+
+## 2026-11-16 — [MECHANICS CHECK] Escalation-stage model code runs end to end on synthetic clips; each mechanism responds to the structure it was built for
+
+**Not a research result. Synthetic data with planted structure, run
+locally on CPU, to verify the code before it is run on real features.**
+Nothing here says the model works on XD-Violence.
+
+**What was run:** every code cell of
+`notebooks/escalation_stage_model.ipynb` (only the Colab mount cell
+swapped for local paths), on 560 generated clips in the real `.npz`
+schema: a riot-content direction, a 10-second "precursor" ramp before
+onset in 70% of the riot clips that have calm footage, 60% of riot clips
+starting at frame 0, and two *static* per-clip signatures correlated with
+the label (a "YouTube" one and a "news overlay" one). 4 arms × 2 seeds,
+10 epochs.
+
+**Observed (25 synthetic onsets with ≥5 s calm):**
+
+| | baseline | ordinal_abs | full | full_adv |
+|---|---|---|---|---|
+| early warning @0.5 | 0.00 | 0.72 | 0.72 | 0.72 |
+| median lead (s) @0.5 | — | 5.0 | 6.3 | 5.5 |
+| normal videos with any alarm @0.5 | 0.00 | 0.00 | 0.00 | 0.00 |
+| escalation AUC, far pre-onset, YouTube controls | — | 0.64 | 0.48 | 0.48 |
+| critical AUC, far pre-onset | 0.43 | 0.50 | 0.47 | 0.65 |
+
+- The ordinal arms raise amber before onset on exactly the share of
+  clips that had a planted precursor (72% ≈ the planted 70%); the
+  baseline never does.
+- Clip-referencing removes the planted static signature from the
+  escalation evidence (0.64 → 0.48, chance is 0.5).
+- The medium adversary made the Critical pathway's far-pre-onset
+  separability *worse* (0.65), i.e. it shifted reliance onto the other
+  planted static cue. Logged as a caution for the real run.
+
+**Also verified:** the reworked extraction notebook's single-pass reader
+returns exactly the frames the old seek-per-window reader did (generated
+videos, stub embedders), and its queue logic (riot → test normals →
+capped train normals, resume, atomic writes). The batched DINOv2/OpenCLIP
+embedders themselves were not run against the real models locally.
+
+**Caveat:** planted signals are linear, clean and large. Real precursors,
+if they exist, will be none of those. This entry licenses "the code does
+what it is supposed to do", nothing more.
+
+**Status:** Mechanics check only. To be followed by a [REAL RESULT] entry
+once the notebook is run on the extracted features.
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

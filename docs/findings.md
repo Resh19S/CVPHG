@@ -705,6 +705,50 @@ once the notebook is run on the extracted features.
 
 ---
 
+## 2026-11-17 — [PARTIAL REAL RESULT] Escalation-stage model, first real run (7 of 9 runs; full table lost to a Colab disconnect)
+
+**Setup.** `escalation_stage_model.ipynb` on the extracted sliding-window
+features (1,385 clips: riot 384 train / 101 test, normal 600 train / 300
+test; official split). CPU runtime, 40 epochs. Colab disconnected during
+`full` seed 1, before the results CSV was written (the notebook then only
+saved at the end — since fixed: save after every run, weights for every
+seed). Numbers below are transcribed from the printed per-run log lines, so
+only the headline metrics exist; calibrated-threshold, YouTube-control and
+escalation-AUC metrics were lost. Seed-0 weights for baseline, ordinal_abs
+and full should survive on Drive and can be re-evaluated.
+
+| arm (seeds) | frame AP | early @0.5 | premature | late | miss | normal-video FA | alarm AUC near | alarm AUC far |
+|---|---|---|---|---|---|---|---|---|
+| baseline (0,1,2) | .9672 / .9679 / .9644 | .28 / .32 / .28 | .08 / .08 / .12 | .56 / .56 / .56 | .08 / .04 / .04 | .02 / .05 / .02 | .880 / .878 / .856 | .760 / .766 / .755 |
+| ordinal_abs (0,1,2) | .9582 / .9654 / .9605 | .32 / .20 / .20 | .20 / .20 / .24 | .44 / .52 / .52 | .04 / .08 / .04 | .02 / .03 / .03 | .949 / .950 / .954 | .818 / .884 / .864 |
+| full (0 only) | .9513 | .40 | .16 | .40 | .04 | .18 | .858 | .660 |
+
+Lead-time outcomes are over ~25 first onsets (one clip = 0.04).
+
+**What this licenses.**
+- Riot detection on the riot-vs-normal subset is high for all arms (frame
+  AP 0.95–0.97). Not comparable to the earlier 85.45% (different features,
+  model and scope) and not comparable to published full-XD-Violence AP.
+- The ordinal stage filter alone (`ordinal_abs`) does **not** improve early
+  warning over the baseline (0.24 vs 0.29 mean, within one clip), doubles
+  premature alarms, and **increases** the far-pre-onset alarm AUC
+  (0.76 → 0.86): its sharper near-onset AUC is mostly video-level
+  (source/scene) recognition, not precursor detection.
+- Far-pre-onset AUC ≈ 0.76 for the plain baseline confirms that every model
+  flags riot videos ≥20 s before onset — the source shortcut is real.
+- `full` (clip-referenced escalation pathway) seed 0: far AUC drops to 0.66
+  and early warning rises to 0.40, **but** 18% of normal test videos raise
+  an alarm (vs 2–5%). Single seed; at @0.5 more alarms mechanically buys
+  more early warnings, so this is not yet evidence of a better detector.
+  The fair test is early warning at a matched false-alarm rate (@cal),
+  which was lost and must be re-run.
+
+**Status:** Preliminary. Not citable as a success. Pending: `full` seeds
+1–2, re-evaluation of seed-0 checkpoints to recover the @cal and
+YouTube-control metrics, then baseline/ordinal_abs seeds 1–2 retrained.
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

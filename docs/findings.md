@@ -792,6 +792,25 @@ clips (300 test normals); lead-time n = 25 first onsets.
   detection.
 - The calibrated threshold varies wildly across seeds (std 0.35).
 
+**Step 8 timelines (`full`, seed 0; the 8 riot test clips with the
+longest calm lead-in; read by eye, qualitative only).**
+- 1 textbook case (k_cvJa1kNaM): green, ~25 s amber, red at onset.
+- 1 long amber run (~38 s) before onset (7zEFHKKBA0g): premature by the
+  30 s definition.
+- 3 clips go straight from green to red 4-26 s before the annotated onset,
+  with at most a sliver of amber (aWPWHU8x6kE, ZCjNPgNu42g, YKtw6uLEGps).
+  Either the model recognises riot-type footage before the annotated start,
+  or annotators mark onset at the first physical violence while visible
+  unrest begins earlier. Cannot be told apart from this data.
+- 1 movie clip (Young.And.Dangerous.III) has a red false alarm ~25 s before
+  onset and stays green through the first annotated interval.
+- Most clips drop briefly to green/amber inside annotated riot intervals.
+- Amber rarely appears as a sustained bridge between green and red; the
+  banded transition only forces one step through amber, which the filter
+  can pass in a single window.
+- aWPWHU8x6kE (140 s lead-in; previously unmatched because of the stray
+  `.mp4` in `annotations.txt`) is now matched and evaluated.
+
 **Status:** Real but incomplete. Next: session 2 (baseline + ordinal_abs
 seeds 1-2) to get @cal for all arms; only the @cal comparison at matched
 normal-video alarm rate can support an early-warning claim.

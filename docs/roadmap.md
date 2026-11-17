@@ -505,6 +505,60 @@ apples_to_apples_frame_level_ap.md`.
   independently for now, integrate later") — not blocking the current
   clip-level fusion classifier work.
 
+## Candidate architectures noted 2026-11-17 (none built, none tested)
+
+Parked at the user's request while extraction runs. Prior-art status for
+every item is ONE web search each — a spot check, not a literature review.
+All four reuse the existing sliding-window features. Before running any of
+them, fix one primary metric: each extra architecture tried on ~25
+lead-time clips raises the chance that one wins by luck.
+
+- **A. Quickest-detection head (learned CUSUM).** Network outputs a
+  per-window log-likelihood ratio l_t; alarm statistic
+  S_t = max(0, S_{t-1} + l_t), trained end to end with MIL. Backing: CUSUM
+  is minimax-optimal for detection delay at a fixed false-alarm rate
+  (Lorden, Moustakides). Resets after each event, so suits the 34
+  multi-interval clips. Detects a change fast; does not predict one.
+  Related: Gong et al. NN-CUSUM (arXiv 2210.17312), Chen et al.
+  min-SCUSUM (arXiv 2511.03967). Not found as a weakly supervised VAD head.
+- **B. Smoother-to-filter distillation.** Run the stage HMM backwards over
+  the whole clip in training; train the causal Escalation evidence to
+  predict the backward message, replacing the ad hoc lookahead-max target.
+  An upgrade to the current model, not a competitor. Related (must cite):
+  offline-teacher -> online-student distillation for weakly supervised
+  online activity detection (IJCV 2025), temporally shifted distillation
+  for accident anticipation (ICLR 2026). Not found with HMM backward
+  messages.
+- **C. Text-anchored escalation axis.** Ordered OpenCLIP text prompts
+  (calm crowd / tense crowd / violent riot) define an axis; window score =
+  position along it. Gives amber a definition independent of the lead-time
+  clips, plus a zero-training baseline. UNVERIFIED precondition: stored
+  OpenCLIP features must be the projected joint-space image embeddings.
+  CLIP may itself respond to watermarks/film look. Related: TPWNG (CVPR
+  2024), LAP (arXiv 2403.01169) — prompts by event type, not ordered
+  severity.
+- **D. Tipping-point network (from-scratch candidate).** Learn a scalar
+  crowd state z_t; a causal recursive-least-squares layer estimates the
+  restoring rate kappa_t of z toward its recent mean. Green = high kappa,
+  amber = kappa falling toward 0 ("critical slowing down"), red = z in the
+  riot regime. Amber is defined by dynamics, not label lookahead. Backing:
+  bifurcation theory of early-warning signals. This is a HYPOTHESIS: no
+  evidence yet that riots in video show critical slowing down. Risks: 1
+  frame/s features with no motion, movie cuts mimic instability, only 8-16
+  test clips have 10-30 s of calm. Cheap pre-test before building: does
+  rolling lag-1 autocorrelation/variance of the features rise before onset
+  vs matched normal footage (~20 lines in the existing notebook). Related:
+  early-warning-signal reviews (arXiv 1305.6700), Helbing et al. crowd
+  turbulence (arXiv 0810.4590); a 2026 "Social Tension Index from raw
+  video" paper (thesai.org Vol 17 No 9, Paper 99) is UNREAD and must be
+  checked before any novelty claim.
+- **Considered and dropped:** test-martingale alarm with a guaranteed
+  false-alarm rate — the guarantee needs exchangeable samples and video
+  windows are strongly dependent.
+
+Suggested order once the first real table exists: D's pre-test (free),
+then B, then C, then A.
+
 ## Status
 
 Nothing above has been run or approved for compute spend — check with

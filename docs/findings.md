@@ -749,6 +749,54 @@ YouTube-control metrics, then baseline/ordinal_abs seeds 1–2 retrained.
 
 ---
 
+## 2026-11-18 — [REAL RESULT] Escalation model `full` arm, 3 seeds (baseline/ordinal_abs seeds 1-2 still to re-run for the matched comparison)
+
+Run on Hith's Colab account (CPU runtime), `RUN_ARMS=['full']`, resumable
+notebook (`cdbff33`). Seed 0 retrained rather than recovered (checkpoint was
+not found) and reproduced the 2026-11-17 seed-0 numbers exactly, so CPU
+training is deterministic at fixed seed. 852 train / 132 val / 401 test
+clips (300 test normals); lead-time n = 25 first onsets.
+
+| metric | full (mean ± std, 3 seeds) |
+|---|---|
+| frame AP / frame AUC / video AUC | 0.953 ± 0.002 / 0.992 / 0.999 |
+| early @0.5 / premature / late / miss | 0.387 ± 0.050 / 0.147 / 0.413 / 0.053 |
+| median lead @0.5 | 11.3 ± 4.7 s |
+| normal videos with any alarm @0.5 | 0.122 ± 0.053 (4.3 ± 2.0 false alarms / hour) |
+| calibrated threshold | 0.596 ± 0.350 |
+| early @cal / premature / late / miss | 0.360 ± 0.000 / 0.147 / 0.440 / 0.053 |
+| median lead @cal | 7.6 ± 1.3 s |
+| normal videos with any alarm @cal | 0.110 ± 0.019 |
+| alarm AUC near / far / far (YouTube controls) | 0.853 / 0.688 ± 0.023 / 0.690 ± 0.032 |
+| escalation AUC near / far / far (YouTube) | 0.776 / 0.654 / 0.657 |
+| critical AUC far | 0.750 ± 0.012 |
+| raw-feature probe AUC near / far / near YT / far YT | 0.931 / 0.830 / 0.921 / 0.809 |
+
+**What this licenses.**
+- Over 3 seeds, `full` gives early warning on ~39% of onsets at @0.5 vs
+  ~29% for the baseline (2026-11-17, headline numbers only), but with 12%
+  of normal videos alarming vs 2-5%. Not a matched comparison: baseline
+  @cal numbers were lost and must be re-run before any claim.
+- Clip-referencing lowered the far-pre-onset alarm AUC (baseline 0.76 ->
+  full 0.69), and the YouTube-only control gives the same value (0.69), so
+  the remaining excess is **not** movie-vs-YouTube source. It is something
+  else that distinguishes riot videos from normal videos long before onset.
+- The raw-feature probe already separates far-pre-onset riot windows from
+  normal windows at 0.83 (0.81 YouTube-only): riot videos differ from
+  normal videos throughout, not only at onset. The escalation pathway,
+  which only sees within-clip change, still reaches 0.65 far — so even
+  "how the video changes" differs between riot and normal footage before
+  any riot (plausibly handheld/crowd camera dynamics). Early-warning
+  numbers on this dataset therefore cannot be read as pure precursor
+  detection.
+- The calibrated threshold varies wildly across seeds (std 0.35).
+
+**Status:** Real but incomplete. Next: session 2 (baseline + ordinal_abs
+seeds 1-2) to get @cal for all arms; only the @cal comparison at matched
+normal-video alarm rate can support an early-warning claim.
+
+---
+
 ## Known open issue carried across entries (not yet resolved)
 
 **Fighting-prompt calibration bias**, first observed 2026-09-11, confirmed

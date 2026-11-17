@@ -752,8 +752,9 @@ YouTube-control metrics, then baseline/ordinal_abs seeds 1–2 retrained.
 ## 2026-11-18 — [REAL RESULT] Escalation model `full` arm, 3 seeds (baseline/ordinal_abs seeds 1-2 still to re-run for the matched comparison)
 
 Run on Hith's Colab account (CPU runtime), `RUN_ARMS=['full']`, resumable
-notebook (`cdbff33`). Seed 0 retrained rather than recovered (checkpoint was
-not found) and reproduced the 2026-11-17 seed-0 numbers exactly, so CPU
+notebook expected but the log lacks the `[saved]` markers, so the earlier
+non-resumable version ran. Seed 0 was retrained rather than recovered (checkpoint was
+not used) and reproduced the 2026-11-17 seed-0 numbers exactly, so CPU
 training is deterministic at fixed seed. 852 train / 132 val / 401 test
 clips (300 test normals); lead-time n = 25 first onsets.
 
